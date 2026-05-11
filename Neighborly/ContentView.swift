@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import FirebaseFirestore
 
 struct ContentView: View {
     var body: some View {
@@ -13,7 +14,18 @@ struct ContentView: View {
             Image(systemName: "globe")
                 .imageScale(.large)
                 .foregroundStyle(.tint)
-            Text("Hello, world!")
+            Text("Neighborly Project")
+            
+            Button("Test Firestore") {
+                let db = Firestore.firestore()
+                db.collection("test").addDocument(data: ["status": "działa!"]) { error in
+                    if let error = error {
+                        print("Błąd: \(error.localizedDescription)")
+                    } else {
+                        print("Sukces! Firebase połączony.")
+                    }
+                }
+            }
         }
         .padding()
     }
