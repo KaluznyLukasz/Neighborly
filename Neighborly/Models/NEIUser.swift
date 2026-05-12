@@ -7,9 +7,10 @@
 
 import Foundation
 import CoreLocation
+import FirebaseFirestore
 
 struct NEIUser: Identifiable, Codable {
-    var id: String?
+    @DocumentID var id: String?
     var displayName: String
     var email: String
     var avatarURL: String?

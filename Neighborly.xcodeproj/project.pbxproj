@@ -10,6 +10,7 @@
 		FAD2A0C92FB24B610059AFA0 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = FAD2A0C82FB24B610059AFA0 /* FirebaseAnalytics */; };
 		FAD2A0CB2FB24B610059AFA0 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = FAD2A0CA2FB24B610059AFA0 /* FirebaseAuth */; };
 		FAD2A0CD2FB24B610059AFA0 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = FAD2A0CC2FB24B610059AFA0 /* FirebaseFirestore */; };
+		FAFC78622FB34EB7009D8114 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = FAFC78612FB34EB7009D8114 /* FirebaseStorage */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -30,6 +31,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				FAD2A0C92FB24B610059AFA0 /* FirebaseAnalytics in Frameworks */,
+				FAFC78622FB34EB7009D8114 /* FirebaseStorage in Frameworks */,
 				FAD2A0CB2FB24B610059AFA0 /* FirebaseAuth in Frameworks */,
 				FAD2A0CD2FB24B610059AFA0 /* FirebaseFirestore in Frameworks */,
 			);
@@ -42,6 +44,7 @@
 			isa = PBXGroup;
 			children = (
 				FAEE8A662FB2424E00E57C48 /* Neighborly */,
+				FAFC78602FB34EB7009D8114 /* Frameworks */,
 				FAEE8A652FB2424E00E57C48 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -52,6 +55,13 @@
 				FAEE8A642FB2424E00E57C48 /* Neighborly.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		FAFC78602FB34EB7009D8114 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -77,6 +87,7 @@
 				FAD2A0C82FB24B610059AFA0 /* FirebaseAnalytics */,
 				FAD2A0CA2FB24B610059AFA0 /* FirebaseAuth */,
 				FAD2A0CC2FB24B610059AFA0 /* FirebaseFirestore */,
+				FAFC78612FB34EB7009D8114 /* FirebaseStorage */,
 			);
 			productName = Neighborly;
 			productReference = FAEE8A642FB2424E00E57C48 /* Neighborly.app */;
@@ -271,7 +282,6 @@
 				DEVELOPMENT_TEAM = 8L27R45F5T;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Neighborly/Info.plist;
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Aplikacja potrzebuje Twojej lokalizacji, aby pokazać ogłoszenia w Twojej okolicy.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -305,7 +315,6 @@
 				DEVELOPMENT_TEAM = 8L27R45F5T;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Neighborly/Info.plist;
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Aplikacja potrzebuje Twojej lokalizacji, aby pokazać ogłoszenia w Twojej okolicy.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -378,6 +387,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = FAD2A0C72FB24B610059AFA0 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseFirestore;
+		};
+		FAFC78612FB34EB7009D8114 /* FirebaseStorage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FAD2A0C72FB24B610059AFA0 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseStorage;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

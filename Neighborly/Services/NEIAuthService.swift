@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import Combine
 import FirebaseAuth
 import FirebaseFirestore
 
@@ -45,8 +46,8 @@ final class NEIAuthService: ObservableObject {
         currentUser = result.user
     }
 
-    func signOut() throws {
-        try auth.signOut()
+    func signOut() {
+        try? auth.signOut()
         currentUser = nil
     }
 

@@ -14,9 +14,9 @@
             filePath = "Neighborly/Views/NEIMapView.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "38"
-            endingLineNumber = "38"
-            landmarkName = "locationManagerDidChangeAuthorization(_:)"
+            startingLineNumber = "39"
+            endingLineNumber = "39"
+            landmarkName = "requestPermission()"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>

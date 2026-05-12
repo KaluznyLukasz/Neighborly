@@ -7,6 +7,7 @@
 
 import Foundation
 import CoreLocation
+import FirebaseFirestore
 
 enum OfferCategory: String, Codable, CaseIterable, Identifiable {
     case tools     = "tools"
@@ -39,10 +40,11 @@ enum OfferCategory: String, Codable, CaseIterable, Identifiable {
 }
 
 struct Offer: Identifiable, Codable {
-    var id: String?
+    @DocumentID var id: String?
     var title: String
     var description: String
     var category: OfferCategory
+    var address: String?
     var ownerId: String
     var latitude: Double
     var longitude: Double

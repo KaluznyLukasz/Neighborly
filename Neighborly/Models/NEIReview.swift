@@ -6,11 +6,13 @@
 //
 
 import Foundation
+import FirebaseFirestore
 
 struct Review: Identifiable, Codable {
-    var id: String?
+    @DocumentID var id: String?
     var transactionId: String
     var reviewerId: String
+    var reviewerName: String
     var revieweeId: String
     var rating: Int       // 1–5
     var comment: String?
