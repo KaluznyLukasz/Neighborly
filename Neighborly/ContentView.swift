@@ -2,35 +2,27 @@
 //  ContentView.swift
 //  Neighborly
 //
-//  Created by Łukasz on 11/05/2026.
+//  Created by Łukasz Kałużny on 11/05/2026.
 //
 
 import SwiftUI
-import FirebaseFirestore
 
 struct ContentView: View {
+    @EnvironmentObject var authService: NEIAuthService
+
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Neighborly Project")
-            
-            Button("Test Firestore") {
-                let db = Firestore.firestore()
-                db.collection("test").addDocument(data: ["status": "działa!"]) { error in
-                    if let error = error {
-                        print("Błąd: \(error.localizedDescription)")
-                    } else {
-                        print("Sukces! Firebase połączony.")
-                    }
-                }
+        Group {
+            if authService.isAuthenticated {
+                NEIMapView()
+            } else {
+                NEIAuthView(authService: authService)
             }
         }
-        .padding()
+        .animation(.easeInOut, value: authService.isAuthenticated)
     }
 }
 
 #Preview {
     ContentView()
+        .environmentObject(NEIAuthService())
 }
