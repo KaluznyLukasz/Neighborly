@@ -21,7 +21,6 @@ final class NEIOfferViewModel {
     var didSave = false
 
     private let offerService = NEIOfferService()
-    private let storageService = NEIStorageService()
     private let geocoder = CLGeocoder()
 
     func createOffer(ownerId: String, fallbackCoordinate: CLLocationCoordinate2D) async {
@@ -29,19 +28,18 @@ final class NEIOfferViewModel {
         isLoading = true
         errorMessage = nil
 
-        // Geocode address — fall back to GPS if geocoding fails
         let coordinate: CLLocationCoordinate2D
         do {
             let placemarks = try await geocoder.geocodeAddressString(address)
             if let location = placemarks.first?.location {
                 coordinate = location.coordinate
             } else {
-                errorMessage = "Address not found. Try a more specific address."
+                errorMessage = "Address not found — try selecting a suggestion from the list."
                 isLoading = false
                 return
             }
         } catch {
-            errorMessage = "Could not find address: \(error.localizedDescription)"
+            errorMessage = "Address not found — check spelling or pick a suggestion."
             isLoading = false
             return
         }
@@ -55,26 +53,29 @@ final class NEIOfferViewModel {
             latitude: coordinate.latitude,
             longitude: coordinate.longitude,
             imageURLs: [],
+            imageBase64: compressedBase64(from: selectedImage),
             isActive: true,
             createdAt: Date()
         )
 
         do {
-            let offerId = try await offerService.createOffer(offer)
-            offer.id = offerId
-
-            if let image = selectedImage {
-                let url = try await storageService.uploadOfferImage(image, offerId: offerId)
-                offer.imageURLs = [url]
-                try await offerService.updateOffer(offer)
-            }
-
+            _ = try await offerService.createOffer(offer)
             didSave = true
         } catch {
             errorMessage = error.localizedDescription
         }
 
         isLoading = false
+    }
+
+    private func compressedBase64(from image: UIImage?) -> String? {
+        guard let image else { return nil }
+        let maxDimension: CGFloat = 600
+        let scale = min(maxDimension / image.size.width, maxDimension / image.size.height, 1.0)
+        let newSize = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+        let renderer = UIGraphicsImageRenderer(size: newSize)
+        let resized = renderer.image { _ in image.draw(in: CGRect(origin: .zero, size: newSize)) }
+        return resized.jpegData(compressionQuality: 0.5)?.base64EncodedString()
     }
 
     private func validate() -> Bool {

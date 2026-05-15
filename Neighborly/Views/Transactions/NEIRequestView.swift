@@ -25,7 +25,7 @@ struct NEIRequestView: View {
                     offerSummary
 
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Message to owner (optional)")
+                        Text("Message to requester (optional)")
                             .font(.caption)
                             .fontWeight(.medium)
                             .foregroundStyle(.secondary)
@@ -47,14 +47,14 @@ struct NEIRequestView: View {
                             .foregroundStyle(.red)
                     }
 
-                    NEIPrimaryButton("Send Request", isLoading: isLoading) {
+                    NEIPrimaryButton("Offer to Help", isLoading: isLoading) {
                         Task { await sendRequest() }
                     }
                 }
                 .padding(24)
             }
             .background(Color(.systemGroupedBackground).ignoresSafeArea())
-            .navigationTitle("Request Offer")
+            .navigationTitle("Offer to Help")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

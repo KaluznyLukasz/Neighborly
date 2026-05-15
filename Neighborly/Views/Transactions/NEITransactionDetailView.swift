@@ -8,9 +8,11 @@ import SwiftUI
 struct NEITransactionDetailView: View {
     let transaction: Transaction
     let currentUserId: String
+    let currentUserName: String
     let vm: NEITransactionViewModel
 
     @State private var showReviewSheet = false
+    @State private var showChatSheet = false
     @State private var canReview = false
     @Environment(\.dismiss) private var dismiss
 
@@ -39,12 +41,27 @@ struct NEITransactionDetailView: View {
                 .padding(20)
             }
             .background(Color(.systemGroupedBackground).ignoresSafeArea())
-            .navigationTitle("Request")
+            .navigationTitle("Application")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") { dismiss() }
                 }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showChatSheet = true
+                    } label: {
+                        Image(systemName: "message.fill")
+                    }
+                    .tint(Color.green)
+                }
+            }
+            .sheet(isPresented: $showChatSheet) {
+                NEIChatView(
+                    transaction: transaction,
+                    currentUserId: currentUserId,
+                    currentUserName: currentUserName
+                )
             }
             .sheet(isPresented: $showReviewSheet) {
                 NEIReviewView(
@@ -83,7 +100,7 @@ struct NEITransactionDetailView: View {
 
     private var detailCard: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label(isOwner ? "Requested by \(transaction.requesterName)" : "Your request",
+            Label(isOwner ? "Volunteer: \(transaction.requesterName)" : "Your application",
                   systemImage: "person.fill")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
@@ -114,13 +131,13 @@ struct NEITransactionDetailView: View {
         switch transaction.status {
         case .pending where isOwner:
             VStack(spacing: 10) {
-                NEIPrimaryButton("Accept") {
+                NEIPrimaryButton("Accept Volunteer") {
                     Task { await vm.accept(transaction: transaction); dismiss() }
                 }
                 Button(role: .destructive) {
                     Task { await vm.reject(transaction: transaction); dismiss() }
                 } label: {
-                    Text("Reject")
+                    Text("Decline")
                         .frame(maxWidth: .infinity)
                         .frame(height: 52)
                         .background(Color.red.opacity(0.1))
@@ -138,7 +155,7 @@ struct NEITransactionDetailView: View {
             Button(role: .destructive) {
                 Task { await vm.cancel(transaction: transaction); dismiss() }
             } label: {
-                Text("Cancel Request")
+                Text("Cancel Application")
                     .frame(maxWidth: .infinity)
                     .frame(height: 52)
                     .background(Color.red.opacity(0.1))

@@ -20,9 +20,9 @@ enum OfferCategory: String, Codable, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .tools:    return "Tools"
-        case .help:     return "Help"
-        case .food:     return "Food"
+        case .tools:    return "Repairs"
+        case .help:     return "General Help"
+        case .food:     return "Food & Groceries"
         case .services: return "Services"
         case .items:    return "Items"
         }
@@ -49,6 +49,7 @@ struct Offer: Identifiable, Codable {
     var latitude: Double
     var longitude: Double
     var imageURLs: [String]
+    var imageBase64: String?
     var isActive: Bool
     var createdAt: Date
 

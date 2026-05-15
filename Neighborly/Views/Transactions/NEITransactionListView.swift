@@ -16,6 +16,7 @@ struct NEITransactionListView: View {
 
     private let offerService = NEIOfferService()
     private var uid: String { authService.currentUser?.uid ?? "" }
+    private var userName: String { authService.currentUser?.displayName ?? "User" }
 
     var body: some View {
         NavigationStack {
@@ -45,6 +46,7 @@ struct NEITransactionListView: View {
                 NEITransactionDetailView(
                     transaction: transaction,
                     currentUserId: uid,
+                    currentUserName: userName,
                     vm: vm
                 )
             }
@@ -92,9 +94,9 @@ struct NEITransactionListView: View {
 
     private var segmentedControl: some View {
         Picker("", selection: $selectedTab) {
-            Text("Inbox").tag(0)
-            Text("My Requests").tag(1)
-            Text("My Offers").tag(2)
+            Text("Volunteers").tag(0)
+            Text("My Applications").tag(1)
+            Text("My Posts").tag(2)
         }
         .pickerStyle(.segmented)
         .padding(16)
@@ -103,10 +105,10 @@ struct NEITransactionListView: View {
 
     private var emptyState: some View {
         VStack(spacing: 12) {
-            Image(systemName: selectedTab == 0 ? "tray" : selectedTab == 1 ? "paperplane" : "tag")
+            Image(systemName: selectedTab == 0 ? "person.wave.2" : selectedTab == 1 ? "paperplane" : "square.and.pencil")
                 .font(.system(size: 44))
                 .foregroundStyle(.secondary)
-            Text(selectedTab == 0 ? "No requests yet" : selectedTab == 1 ? "No sent requests" : "No offers posted yet")
+            Text(selectedTab == 0 ? "No volunteers yet" : selectedTab == 1 ? "No applications yet" : "No posts yet")
                 .font(.headline)
                 .foregroundStyle(.secondary)
         }
@@ -151,7 +153,7 @@ private struct TransactionRow: View {
                     .font(.subheadline)
                     .fontWeight(.medium)
                 if isInbox {
-                    Text("From: \(transaction.requesterName)")
+                    Text("Volunteer: \(transaction.requesterName)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

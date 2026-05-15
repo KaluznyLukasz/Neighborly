@@ -23,15 +23,16 @@ struct NEIOfferDetailView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    if let urlString = offer.imageURLs.first, let url = URL(string: urlString) {
-                        AsyncImage(url: url) { image in
-                            image.resizable().scaledToFill()
-                        } placeholder: {
-                            Color(.systemGray5)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 200)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    if let base64 = offer.imageBase64,
+                       let data = Data(base64Encoded: base64),
+                       let uiImage = UIImage(data: data) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 220)
+                            .clipped()
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
 
                     HStack {
@@ -90,13 +91,13 @@ struct NEIOfferDetailView: View {
     }
 
     private var requestButton: some View {
-        NEIPrimaryButton(requestSent ? "Request Sent!" : "Request This") {
+        NEIPrimaryButton(requestSent ? "Applied!" : "Offer to Help") {
             if !requestSent { showRequestSheet = true }
         }
     }
 
     private var requestSentBanner: some View {
-        Label("Request sent successfully!", systemImage: "checkmark.circle.fill")
+        Label("You offered to help!", systemImage: "checkmark.circle.fill")
             .font(.subheadline)
             .fontWeight(.medium)
             .padding(12)
@@ -116,7 +117,7 @@ struct NEIOfferDetailView: View {
             HStack {
                 Image(systemName: "checkmark.seal.fill")
                     .foregroundStyle(.green)
-                Text("This is your offer")
+                Text("This is your request")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -127,7 +128,7 @@ struct NEIOfferDetailView: View {
                     onDelete()
                     dismiss()
                 } label: {
-                    Label("Delete Offer", systemImage: "trash")
+                    Label("Delete Request", systemImage: "trash")
                         .frame(maxWidth: .infinity)
                         .frame(height: 52)
                         .background(Color.red.opacity(0.1))

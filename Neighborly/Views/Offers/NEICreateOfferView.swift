@@ -6,6 +6,32 @@
 import SwiftUI
 import CoreLocation
 import PhotosUI
+import MapKit
+
+@Observable
+final class AddressCompleter: NSObject, MKLocalSearchCompleterDelegate {
+    var suggestions: [MKLocalSearchCompletion] = []
+    private let completer = MKLocalSearchCompleter()
+
+    override init() {
+        super.init()
+        completer.delegate = self
+        completer.resultTypes = .address
+    }
+
+    func update(query: String) {
+        guard !query.isEmpty else { suggestions = []; return }
+        completer.queryFragment = query
+    }
+
+    func completerDidUpdateResults(_ completer: MKLocalSearchCompleter) {
+        suggestions = Array(completer.results.prefix(5))
+    }
+
+    func completer(_ completer: MKLocalSearchCompleter, didFailWithError error: Error) {
+        suggestions = []
+    }
+}
 
 struct NEICreateOfferView: View {
     let ownerId: String
@@ -14,17 +40,20 @@ struct NEICreateOfferView: View {
 
     @State private var vm = NEIOfferViewModel()
     @State private var photosPickerItem: PhotosPickerItem?
+    @State private var completer = AddressCompleter()
+    @State private var showSuggestions = false
+    @State private var skipNextChange = false
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
-                    NEIInputField(label: "Title", placeholder: "e.g. Power Drill", text: $vm.title)
+                    NEIInputField(label: "Title", placeholder: "e.g. Help walking my dog", text: $vm.title)
 
-                    NEIInputField(label: "Description", placeholder: "Condition, availability...", text: $vm.description)
+                    NEIInputField(label: "Description", placeholder: "When, how long, what's needed...", text: $vm.description)
 
-                    NEIInputField(label: "Address", placeholder: "e.g. ul. Marszałkowska 10, Warsaw", text: $vm.address)
+                    addressField
 
                     categoryPicker
 
@@ -36,12 +65,11 @@ struct NEICreateOfferView: View {
                             .foregroundStyle(.red)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
-
                 }
                 .padding(24)
             }
             .background(Color(.systemGroupedBackground).ignoresSafeArea())
-            .navigationTitle("New Offer")
+            .navigationTitle("Post a Request")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -65,10 +93,7 @@ struct NEICreateOfferView: View {
                 }
             }
             .onChange(of: vm.didSave) { _, saved in
-                if saved {
-                    onSaved()
-                    dismiss()
-                }
+                if saved { onSaved(); dismiss() }
             }
             .onChange(of: photosPickerItem) { _, item in
                 Task {
@@ -77,6 +102,61 @@ struct NEICreateOfferView: View {
                         vm.selectedImage = image
                     }
                 }
+            }
+        }
+    }
+
+    private var addressField: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Address")
+                .font(.caption)
+                .fontWeight(.medium)
+                .foregroundStyle(.secondary)
+
+            TextField("e.g. ul. Marszałkowska 10, Warsaw", text: $vm.address)
+                .padding(12)
+                .background(Color(.systemBackground))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .onChange(of: vm.address) { _, value in
+                    if skipNextChange { skipNextChange = false; return }
+                    completer.update(query: value)
+                    showSuggestions = !value.isEmpty
+                }
+
+            if showSuggestions && !completer.suggestions.isEmpty {
+                VStack(spacing: 0) {
+                    ForEach(completer.suggestions, id: \.self) { suggestion in
+                        Button {
+                            let full = suggestion.subtitle.isEmpty
+                                ? suggestion.title
+                                : "\(suggestion.title), \(suggestion.subtitle)"
+                            skipNextChange = true
+                            vm.address = full
+                            showSuggestions = false
+                            completer.suggestions = []
+                        } label: {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(suggestion.title)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.primary)
+                                if !suggestion.subtitle.isEmpty {
+                                    Text(suggestion.subtitle)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                        }
+                        if suggestion !== completer.suggestions.last {
+                            Divider().padding(.leading, 12)
+                        }
+                    }
+                }
+                .background(Color(.systemBackground))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .shadow(color: .black.opacity(0.08), radius: 6, y: 3)
             }
         }
     }

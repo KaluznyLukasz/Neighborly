@@ -69,7 +69,7 @@ struct NEIMapView: View {
             UserAnnotation()
 
             ForEach(mapVM.offers) { offer in
-                Annotation(offer.title, coordinate: offer.coordinate) {
+                Annotation("", coordinate: offer.coordinate) {
                     NEIOfferAnnotationView(offer: offer)
                         .onTapGesture {
                             mapVM.selectedOffer = offer
@@ -184,6 +184,12 @@ struct NEIOfferAnnotationView: View {
                 .foregroundStyle(Color.green)
                 .rotationEffect(.degrees(180))
                 .offset(y: -2)
+            Text(offer.title)
+                .font(.caption2)
+                .fontWeight(.semibold)
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+                .padding(.top, 2)
         }
     }
 }

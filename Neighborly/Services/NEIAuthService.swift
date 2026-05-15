@@ -11,6 +11,7 @@ import FirebaseFirestore
 @MainActor
 final class NEIAuthService: ObservableObject {
     @Published var currentUser: FirebaseAuth.User?
+    @Published var isRestoring = true
 
     private let auth = Auth.auth()
     private let db = Firestore.firestore()
@@ -20,6 +21,7 @@ final class NEIAuthService: ObservableObject {
         authStateHandle = auth.addStateDidChangeListener { [weak self] _, user in
             Task { @MainActor in
                 self?.currentUser = user
+                self?.isRestoring = false
             }
         }
     }
