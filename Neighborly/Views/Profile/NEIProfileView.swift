@@ -27,10 +27,15 @@ struct NEIProfileView: View {
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.large)
             .toolbar { toolbarItems }
-            .sheet(isPresented: $showEditSheet) {
-                if let _ = vm.user {
-                    NEIEditProfileView(vm: vm, userId: uid)
-                }
+            .sheet(isPresented: $showEditSheet, onDismiss: {
+                Task { await vm.load(userId: uid) }
+            }) {
+                NEIEditProfileView(
+                    vm: vm,
+                    userId: uid,
+                    currentDisplayName: authService.currentUser?.displayName ?? "",
+                    currentEmail: authService.currentUser?.email ?? ""
+                )
             }
             .alert("Sign out?", isPresented: $showSignOutAlert) {
                 Button("Sign Out", role: .destructive) { authService.signOut() }
@@ -82,13 +87,21 @@ struct NEIProfileView: View {
             NEIAvatarView(
                 url: vm.user?.avatarURL,
                 name: vm.user?.displayName ?? authService.currentUser?.displayName ?? "",
-                size: 80
+                size: 80,
+                base64: vm.user?.avatarBase64
             )
 
             VStack(spacing: 4) {
                 Text(vm.user?.displayName ?? authService.currentUser?.displayName ?? "")
                     .font(.title2)
                     .fontWeight(.bold)
+
+                let displayEmail = vm.user?.email ?? authService.currentUser?.email ?? ""
+                if !displayEmail.isEmpty {
+                    Text(displayEmail)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
 
                 if let bio = vm.user?.bio, !bio.isEmpty {
                     Text(bio)

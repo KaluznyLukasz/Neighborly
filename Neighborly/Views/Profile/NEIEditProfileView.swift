@@ -9,17 +9,22 @@ import PhotosUI
 struct NEIEditProfileView: View {
     @Bindable var vm: NEIProfileViewModel
     let userId: String
+    @EnvironmentObject private var authService: NEIAuthService
 
     @State private var displayName: String
     @State private var bio: String
+    @State private var email: String
     @State private var photosPickerItem: PhotosPickerItem?
+    @State private var avatarPreview: UIImage?
+    @State private var photoLoadError: String?
     @Environment(\.dismiss) private var dismiss
 
-    init(vm: NEIProfileViewModel, userId: String) {
+    init(vm: NEIProfileViewModel, userId: String, currentDisplayName: String = "", currentEmail: String = "") {
         self.vm = vm
         self.userId = userId
-        _displayName = State(initialValue: vm.user?.displayName ?? "")
+        _displayName = State(initialValue: vm.user?.displayName ?? currentDisplayName)
         _bio         = State(initialValue: vm.user?.bio ?? "")
+        _email       = State(initialValue: vm.user?.email ?? currentEmail)
     }
 
     var body: some View {
@@ -27,20 +32,24 @@ struct NEIEditProfileView: View {
             ScrollView {
                 VStack(spacing: 24) {
                     avatarSection
-                    NEIInputField(label: "Display Name", placeholder: "Your name", text: $displayName)
-                    NEIInputField(label: "Bio", placeholder: "Tell neighbors about yourself...", text: $bio)
 
-                    if let error = vm.errorMessage {
-                        Text(error)
-                            .font(.caption)
-                            .foregroundStyle(.red)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
+                    NEIInputField(label: "Display Name", placeholder: "Your name", text: $displayName)
+                    NEIInputField(label: "Email", placeholder: "your@email.com", text: $email, keyboardType: .emailAddress)
+                        .textInputAutocapitalization(.never)
+                    NEIInputField(label: "Bio", placeholder: "Tell neighbors about yourself...", text: $bio)
 
                     NEIPrimaryButton("Save Changes", isLoading: vm.isSaving) {
                         Task {
-                            await vm.updateProfile(displayName: displayName, bio: bio)
-                            if vm.errorMessage == nil { dismiss() }
+                            await vm.updateProfile(
+                                userId: userId,
+                                displayName: displayName,
+                                bio: bio,
+                                email: email
+                            )
+                            if vm.errorMessage == nil {
+                                authService.refreshCurrentUser()
+                                dismiss()
+                            }
                         }
                     }
                 }
@@ -54,11 +63,30 @@ struct NEIEditProfileView: View {
                     Button("Cancel") { dismiss() }
                 }
             }
+            .alert("Error", isPresented: .init(
+                get: { vm.errorMessage != nil || photoLoadError != nil },
+                set: { if !$0 { vm.errorMessage = nil; photoLoadError = nil } }
+            )) {
+                Button("OK") { vm.errorMessage = nil; photoLoadError = nil }
+            } message: {
+                Text(vm.errorMessage ?? photoLoadError ?? "")
+            }
             .onChange(of: photosPickerItem) { _, item in
+                guard let item else { return }
                 Task {
-                    if let data = try? await item?.loadTransferable(type: Data.self),
-                       let image = UIImage(data: data) {
+                    do {
+                        guard let data = try await item.loadTransferable(type: Data.self) else {
+                            photoLoadError = "Could not load image data."
+                            return
+                        }
+                        guard let image = UIImage(data: data) else {
+                            photoLoadError = "Could not decode image."
+                            return
+                        }
+                        avatarPreview = image
                         await vm.uploadAvatar(image: image, userId: userId)
+                    } catch {
+                        photoLoadError = error.localizedDescription
                     }
                 }
             }
@@ -68,7 +96,20 @@ struct NEIEditProfileView: View {
     private var avatarSection: some View {
         PhotosPicker(selection: $photosPickerItem, matching: .images) {
             ZStack(alignment: .bottomTrailing) {
-                NEIAvatarView(url: vm.user?.avatarURL, name: vm.user?.displayName ?? "", size: 88)
+                if let preview = avatarPreview {
+                    Image(uiImage: preview)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 88, height: 88)
+                        .clipShape(Circle())
+                } else {
+                    NEIAvatarView(
+                        url: vm.user?.avatarURL,
+                        name: vm.user?.displayName ?? "",
+                        size: 88,
+                        base64: vm.user?.avatarBase64
+                    )
+                }
 
                 Image(systemName: "camera.circle.fill")
                     .font(.title2)

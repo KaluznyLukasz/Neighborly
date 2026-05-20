@@ -41,7 +41,7 @@ struct NEIOfferDetailView: View {
                         Text(offer.createdAt, style: .relative)
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                    }
+                    } 
 
                     Text(offer.title)
                         .font(.title2)

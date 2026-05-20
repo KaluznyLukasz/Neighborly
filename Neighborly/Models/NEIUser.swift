@@ -14,6 +14,7 @@ struct NEIUser: Identifiable, Codable {
     var displayName: String
     var email: String
     var avatarURL: String?
+    var avatarBase64: String?
     var bio: String?
     var latitude: Double?
     var longitude: Double?

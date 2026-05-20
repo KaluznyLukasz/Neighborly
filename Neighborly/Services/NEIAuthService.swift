@@ -53,6 +53,10 @@ final class NEIAuthService: ObservableObject {
         currentUser = nil
     }
 
+    func refreshCurrentUser() {
+        currentUser = auth.currentUser
+    }
+
     private func createUserDocument(user: FirebaseAuth.User, displayName: String) async throws {
         let data: [String: Any] = [
             "id": user.uid,
