@@ -1,15 +1,16 @@
 {
   "images" : [
     {
-      "filename" : "NeighborlyIcon.png",
       "idiom" : "universal",
       "scale" : "1x"
     },
     {
+      "filename" : "NeighborlyIcon 1.png",
       "idiom" : "universal",
       "scale" : "2x"
     },
     {
+      "filename" : "NeighborlyIcon 2.png",
       "idiom" : "universal",
       "scale" : "3x"
     }

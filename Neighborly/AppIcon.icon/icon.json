@@ -1,0 +1,253 @@
+{
+  "features" : [
+    "refractivity",
+    "specular-location"
+  ],
+  "fill" : {
+    "linear-gradient" : [
+      "display-p3:0.42969,0.77783,0.52100,1.00000",
+      "display-p3:0.28962,0.59127,0.90547,1.00000"
+    ]
+  },
+  "groups" : [
+    {
+      "blur-material-specializations" : [
+        {
+          "value" : 0.26
+        },
+        {
+          "appearance" : "tinted",
+          "value" : 0.11
+        }
+      ],
+      "layers" : [
+        {
+          "fill-specializations" : [
+            {
+              "value" : {
+                "linear-gradient" : [
+                  "display-p3:1.00000,1.00000,1.00000,1.00000",
+                  "display-p3:1.00000,1.00000,1.00000,1.00000"
+                ]
+              }
+            },
+            {
+              "appearance" : "dark",
+              "value" : {
+                "linear-gradient" : [
+                  "display-p3:0.42920,0.77441,0.52393,1.00000",
+                  "display-p3:0.30651,0.64390,1.00000,1.00000"
+                ]
+              }
+            }
+          ],
+          "image-name" : "person.fill.svg",
+          "name" : "person.fill",
+          "position" : {
+            "scale" : 0.25,
+            "translation-in-points" : [
+              0,
+              -13
+            ]
+          }
+        }
+      ],
+      "lighting" : "individual",
+      "refractivity" : {
+        "depth" : 0.39140624999999996,
+        "enabled" : true,
+        "strength" : 0.8196484375
+      },
+      "shadow-specializations" : [
+        {
+          "value" : {
+            "kind" : "neutral",
+            "opacity" : 1.2
+          }
+        },
+        {
+          "appearance" : "dark",
+          "value" : {
+            "kind" : "neutral",
+            "opacity" : 1.04
+          }
+        }
+      ],
+      "specular" : "inside",
+      "translucency-specializations" : [
+        {
+          "value" : {
+            "enabled" : true,
+            "value" : 0.35
+          }
+        },
+        {
+          "appearance" : "dark",
+          "value" : {
+            "enabled" : true,
+            "value" : 0.45
+          }
+        }
+      ]
+    },
+    {
+      "blur-material" : null,
+      "layers" : [
+        {
+          "fill-specializations" : [
+            {
+              "value" : {
+                "linear-gradient" : [
+                  "display-p3:1.00000,1.00000,1.00000,1.00000",
+                  "display-p3:1.00000,1.00000,1.00000,1.00000"
+                ]
+              }
+            },
+            {
+              "appearance" : "dark",
+              "value" : {
+                "linear-gradient" : [
+                  "display-p3:0.42920,0.77441,0.52393,1.00000",
+                  "display-p3:0.30651,0.64390,1.00000,1.00000"
+                ]
+              }
+            }
+          ],
+          "image-name" : "person.fill 3.svg",
+          "name" : "person.fill 3",
+          "position" : {
+            "scale" : 0.18,
+            "translation-in-points" : [
+              127.69079999999997,
+              26.839450000000056
+            ]
+          }
+        },
+        {
+          "fill-specializations" : [
+            {
+              "value" : {
+                "linear-gradient" : [
+                  "display-p3:1.00000,1.00000,1.00000,1.00000",
+                  "display-p3:1.00000,1.00000,1.00000,1.00000"
+                ]
+              }
+            },
+            {
+              "appearance" : "dark",
+              "value" : {
+                "linear-gradient" : [
+                  "display-p3:0.42920,0.77441,0.52393,1.00000",
+                  "display-p3:0.30651,0.64390,1.00000,1.00000"
+                ]
+              }
+            }
+          ],
+          "image-name" : "person.fill 3.svg",
+          "name" : "person.fill 3",
+          "position" : {
+            "scale" : 0.18,
+            "translation-in-points" : [
+              -127.69079999999997,
+              26.839450000000056
+            ]
+          }
+        }
+      ],
+      "lighting" : "individual",
+      "refractivity" : {
+        "depth" : 0.018000000000000002,
+        "enabled" : true,
+        "strength" : 1
+      },
+      "shadow-specializations" : [
+        {
+          "value" : {
+            "kind" : "neutral",
+            "opacity" : 1.2
+          }
+        },
+        {
+          "appearance" : "dark",
+          "value" : {
+            "kind" : "neutral",
+            "opacity" : 1.04
+          }
+        }
+      ],
+      "specular" : "inside",
+      "translucency-specializations" : [
+        {
+          "value" : {
+            "enabled" : true,
+            "value" : 0.4
+          }
+        },
+        {
+          "appearance" : "dark",
+          "value" : {
+            "enabled" : true,
+            "value" : 0.55
+          }
+        }
+      ]
+    },
+    {
+      "blur-material" : 0.5,
+      "layers" : [
+        {
+          "blend-mode" : "normal",
+          "fill-specializations" : [
+            {
+              "value" : {
+                "linear-gradient" : [
+                  "display-p3:1.00000,1.00000,1.00000,1.00000",
+                  "display-p3:1.00000,1.00000,1.00000,1.00000"
+                ]
+              }
+            },
+            {
+              "appearance" : "dark",
+              "value" : {
+                "linear-gradient" : [
+                  "display-p3:0.42920,0.77441,0.52393,1.00000",
+                  "display-p3:0.30651,0.64390,1.00000,1.00000"
+                ]
+              }
+            }
+          ],
+          "glass" : true,
+          "image-name" : "Vector.png",
+          "name" : "Vector",
+          "position" : {
+            "scale" : 0.695,
+            "translation-in-points" : [
+              0.3550000000000182,
+              -48.24117500000011
+            ]
+          }
+        }
+      ],
+      "refractivity" : {
+        "depth" : 0,
+        "enabled" : true,
+        "strength" : 1
+      },
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 1.2
+      },
+      "specular" : "inside",
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.4
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "circles" : [
+      "watchOS"
+    ],
+    "squares" : "shared"
+  }
+}

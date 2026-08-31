@@ -1,0 +1,61 @@
+rules_version = '2';
+
+// Reguły bezpieczeństwa Firestore dla Neighborly.
+// Odwzorowują TRD §4 + podkolekcję favorites (zapisane oferty).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // /users/{userId}
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && request.auth.uid == userId;
+
+      // /users/{userId}/favorites/{offerId} — zapisane oferty użytkownika
+      match /favorites/{offerId} {
+        allow read, write: if isSignedIn() && request.auth.uid == userId;
+      }
+    }
+
+    // /offers/{offerId}
+    match /offers/{offerId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+    }
+
+    // /transactions/{transactionId}
+    match /transactions/{transactionId} {
+      allow read: if isSignedIn() &&
+        (resource.data.requesterId == request.auth.uid || resource.data.ownerId == request.auth.uid);
+      allow create: if isSignedIn() &&
+        request.resource.data.requesterId == request.auth.uid &&
+        request.resource.data.ownerId != request.auth.uid;
+      allow update: if isSignedIn() &&
+        (resource.data.ownerId == request.auth.uid || resource.data.requesterId == request.auth.uid);
+
+      // /transactions/{transactionId}/messages/{messageId} — czat powiązany z aplikacją
+      match /messages/{messageId} {
+        function isParticipant() {
+          let t = get(/databases/$(database)/documents/transactions/$(transactionId)).data;
+          return t.ownerId == request.auth.uid || t.requesterId == request.auth.uid;
+        }
+
+        allow read: if isSignedIn() && isParticipant();
+        allow create: if isSignedIn() && isParticipant() &&
+          request.resource.data.senderId == request.auth.uid;
+        allow update, delete: if false;
+      }
+    }
+
+    // /reviews/{reviewId}
+    match /reviews/{reviewId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.reviewerId == request.auth.uid;
+      allow update, delete: if false;
+    }
+  }
+}
