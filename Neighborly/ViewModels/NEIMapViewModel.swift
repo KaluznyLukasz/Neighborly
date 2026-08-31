@@ -15,12 +15,15 @@ final class NEIMapViewModel {
     var errorMessage: String?
 
     private let offerService = NEIOfferService()
+    private let blockService = NEIBlockService()
 
-    func loadOffers(near coordinate: CLLocationCoordinate2D) async {
+    func loadOffers(near coordinate: CLLocationCoordinate2D, currentUserId: String) async {
         isLoading = true
         errorMessage = nil
         do {
-            offers = try await offerService.fetchOffers(near: coordinate)
+            let fetched = try await offerService.fetchOffers(near: coordinate, radiusKm: NEIUserPreferences.searchRadiusKm)
+            let blockedIds = (try? await blockService.fetchBlockedUserIds(userId: currentUserId)) ?? []
+            offers = fetched.filter { !blockedIds.contains($0.ownerId) }
         } catch {
             errorMessage = error.localizedDescription
         }

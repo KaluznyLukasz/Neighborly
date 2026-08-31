@@ -13,25 +13,25 @@ final class NEISearchViewModel {
     var isLoading = false
     var errorMessage: String?
     var searchText: String = ""
-    var selectedCategory: OfferCategory? = nil
 
     private let offerService = NEIOfferService()
+    private let blockService = NEIBlockService()
 
     var filteredOffers: [Offer] {
-        offers.filter { offer in
-            let matchesSearch = searchText.isEmpty ||
-                offer.title.localizedCaseInsensitiveContains(searchText) ||
+        guard !searchText.isEmpty else { return [] }
+        return offers.filter { offer in
+            offer.title.localizedCaseInsensitiveContains(searchText) ||
                 offer.description.localizedCaseInsensitiveContains(searchText)
-            let matchesCategory = selectedCategory == nil || offer.category == selectedCategory
-            return matchesSearch && matchesCategory
         }
     }
 
-    func loadOffers(near coordinate: CLLocationCoordinate2D) async {
+    func loadOffers(near coordinate: CLLocationCoordinate2D, currentUserId: String) async {
         isLoading = true
         errorMessage = nil
         do {
-            offers = try await offerService.fetchOffers(near: coordinate, radiusKm: 50.0)
+            let fetched = try await offerService.fetchOffers(near: coordinate, radiusKm: NEIUserPreferences.searchRadiusKm)
+            let blockedIds = (try? await blockService.fetchBlockedUserIds(userId: currentUserId)) ?? []
+            offers = fetched.filter { !blockedIds.contains($0.ownerId) }
         } catch {
             errorMessage = error.localizedDescription
         }

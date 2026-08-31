@@ -105,12 +105,12 @@ struct NEIMapView: View {
         .onAppear {
             locationManager.requestPermission()
             let coord = locationManager.userCoordinate ?? defaultCenter
-            Task { await mapVM.loadOffers(near: coord) }
+            Task { await mapVM.loadOffers(near: coord, currentUserId: authService.currentUser?.uid ?? "") }
         }
         .onChange(of: locationManager.userCoordinate) { _, coord in
             guard let coord else { return }
             mapPosition = .region(MKCoordinateRegion(center: coord, span: defaultSpan))
-            Task { await mapVM.loadOffers(near: coord) }
+            Task { await mapVM.loadOffers(near: coord, currentUserId: authService.currentUser?.uid ?? "") }
         }
         .sheet(item: $selectedOffer) { offer in
             NEIOfferDetailView(
@@ -133,7 +133,7 @@ struct NEIMapView: View {
                     ownerId: uid,
                     coordinate: coord,
                     onSaved: {
-                        Task { await mapVM.loadOffers(near: coord) }
+                        Task { await mapVM.loadOffers(near: coord, currentUserId: authService.currentUser?.uid ?? "") }
                     }
                 )
             }

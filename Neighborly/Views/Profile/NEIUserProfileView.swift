@@ -1,29 +1,55 @@
 import SwiftUI
+import FirebaseAuth
 
 struct NEIUserProfileView: View {
     let userId: String
 
+    @EnvironmentObject var authService: NEIAuthService
     @State private var vm = NEIProfileViewModel()
-    @Environment(\.dismiss) private var dismiss
+    @State private var blockVM = NEIBlockViewModel()
+    @State private var showBlockAlert = false
+    @State private var showUnblockAlert = false
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if vm.isLoading {
-                    ProgressView()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    scrollContent
+        Group {
+            if vm.isLoading {
+                ProgressView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                scrollContent
+            }
+        }
+        .navigationTitle("Profile")
+        .navigationBarTitleDisplayMode(.inline)
+        .task { await vm.load(userId: userId) }
+        .task { await blockVM.checkBlocked(userId: userId, currentUserId: authService.currentUser?.uid ?? "") }
+        .alert("Block \(vm.user?.displayName ?? "this user")?", isPresented: $showBlockAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button("Block", role: .destructive) {
+                Task {
+                    await blockVM.toggleBlock(
+                        blockedUserId: userId,
+                        blockedDisplayName: vm.user?.displayName ?? "",
+                        currentUserId: authService.currentUser?.uid ?? ""
+                    )
                 }
             }
-            .navigationTitle("Profile")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { dismiss() }
+        } message: {
+            Text("You won't see their offers anymore.")
+        }
+        .alert("Unblock \(vm.user?.displayName ?? "this user")?", isPresented: $showUnblockAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button("Unblock", role: .destructive) {
+                Task {
+                    await blockVM.toggleBlock(
+                        blockedUserId: userId,
+                        blockedDisplayName: vm.user?.displayName ?? "",
+                        currentUserId: authService.currentUser?.uid ?? ""
+                    )
                 }
             }
-            .task { await vm.load(userId: userId) }
+        } message: {
+            Text("You'll be able to see their offers again.")
         }
     }
 
@@ -37,6 +63,9 @@ struct NEIUserProfileView: View {
                 VStack(spacing: 16) {
                     postsSection
                     reviewsSection
+                    if userId != authService.currentUser?.uid {
+                        blockSection
+                    }
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 24)
@@ -152,6 +181,36 @@ struct NEIUserProfileView: View {
                     ReviewRow(review: review)
                 }
             }
+        }
+    }
+
+    private var blockSection: some View {
+        sectionCard(title: "Trust & Safety") {
+            Button {
+                if blockVM.isBlocked(userId) {
+                    showUnblockAlert = true
+                } else {
+                    showBlockAlert = true
+                }
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "person.fill.xmark")
+                        .font(.subheadline)
+                        .foregroundStyle(blockVM.isBlocked(userId) ? Color(.systemGray) : Color.neiRed)
+                        .frame(width: 36, height: 36)
+                        .background(blockVM.isBlocked(userId) ? Color(.systemGray5) : Color.neiRed.opacity(0.15))
+                        .clipShape(RoundedRectangle(cornerRadius: 9))
+
+                    Text(blockVM.isBlocked(userId) ? "Unblock User" : "Block User")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundStyle(blockVM.isBlocked(userId) ? .primary : Color.neiRed)
+
+                    Spacer()
+                }
+                .padding(.vertical, 2)
+            }
+            .buttonStyle(.plain)
         }
     }
 

@@ -22,88 +22,91 @@ struct NEIOfferDetailView: View {
     var isOwner: Bool { offer.ownerId == currentUserId }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            grabHandle
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 0) {
+                grabHandle
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    if let base64 = offer.imageBase64,
-                       let data = Data(base64Encoded: base64),
-                       let uiImage = UIImage(data: data) {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 220)
-                            .clipped()
-                    }
-
-                    VStack(alignment: .leading, spacing: 16) {
-                        HStack {
-                            NEICategoryBadge(category: offer.category)
-                            Spacer()
-                            Text(offer.createdAt, style: .relative)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            favoriteButton
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        if let base64 = offer.imageBase64,
+                           let data = Data(base64Encoded: base64),
+                           let uiImage = UIImage(data: data) {
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 220)
+                                .clipped()
                         }
 
-                        Text(offer.title)
-                            .font(.title2)
-                            .fontWeight(.bold)
+                        VStack(alignment: .leading, spacing: 16) {
+                            HStack {
+                                NEICategoryBadge(category: offer.category)
+                                Spacer()
+                                Text(offer.createdAt, style: .relative)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                favoriteButton
+                            }
 
-                        Text(offer.description)
-                            .font(.body)
-                            .foregroundStyle(.secondary)
+                            Text(offer.title)
+                                .font(.title2)
+                                .fontWeight(.bold)
 
-                        ownerRow
+                            Text(offer.description)
+                                .font(.body)
+                                .foregroundStyle(.secondary)
+
+                            ownerRow
+                        }
+                        .padding(20)
+                    }
+                }
+            }
+            .safeAreaInset(edge: .bottom) {
+                VStack(spacing: 0) {
+                    Divider()
+                    Group {
+                        if isOwner {
+                            ownerActions
+                        } else {
+                            requestButton
+                        }
                     }
                     .padding(20)
                 }
+                .background(.regularMaterial)
             }
-        }
-        .safeAreaInset(edge: .bottom) {
-            VStack(spacing: 0) {
-                Divider()
-                Group {
-                    if isOwner {
-                        ownerActions
-                    } else {
-                        requestButton
-                    }
+            .background(Color(.systemBackground))
+            .task { await loadOwner() }
+            .task {
+                guard let offerId = offer.id else { return }
+                await favoriteVM.checkFavorited(offerId: offerId, userId: currentUserId)
+            }
+            .sheet(isPresented: $showRequestSheet) {
+                NEIRequestView(
+                    offer: offer,
+                    requesterId: currentUserId,
+                    requesterName: currentUserName,
+                    onSent: { requestSent = true }
+                )
+            }
+            .navigationDestination(isPresented: $showOwnerProfile) {
+                NEIUserProfileView(userId: offer.ownerId)
+            }
+            .toolbar(.hidden, for: .navigationBar)
+            .alert("Error", isPresented: .init(
+                get: { favoriteVM.errorMessage != nil },
+                set: { if !$0 { favoriteVM.errorMessage = nil } }
+            )) {
+                Button("OK") { favoriteVM.errorMessage = nil }
+            } message: {
+                Text(favoriteVM.errorMessage ?? "")
+            }
+            .overlay(alignment: .top) {
+                if requestSent {
+                    requestSentBanner
                 }
-                .padding(20)
-            }
-            .background(.regularMaterial)
-        }
-        .background(Color(.systemBackground))
-        .task { await loadOwner() }
-        .task {
-            guard let offerId = offer.id else { return }
-            await favoriteVM.checkFavorited(offerId: offerId, userId: currentUserId)
-        }
-        .sheet(isPresented: $showRequestSheet) {
-            NEIRequestView(
-                offer: offer,
-                requesterId: currentUserId,
-                requesterName: currentUserName,
-                onSent: { requestSent = true }
-            )
-        }
-        .sheet(isPresented: $showOwnerProfile) {
-            NEIUserProfileView(userId: offer.ownerId)
-        }
-        .alert("Error", isPresented: .init(
-            get: { favoriteVM.errorMessage != nil },
-            set: { if !$0 { favoriteVM.errorMessage = nil } }
-        )) {
-            Button("OK") { favoriteVM.errorMessage = nil }
-        } message: {
-            Text(favoriteVM.errorMessage ?? "")
-        }
-        .overlay(alignment: .top) {
-            if requestSent {
-                requestSentBanner
             }
         }
     }

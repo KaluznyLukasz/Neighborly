@@ -16,6 +16,9 @@ struct NEISettingsView: View {
     @State private var showDeleteAlert = false
     @State private var deleteErrorMessage: String?
     @State private var isDeleting = false
+    @State private var searchRadiusKm: Double = NEIUserPreferences.searchRadiusKm
+
+    private let radiusOptions: [Double] = [5, 10, 25, 50, 100]
 
     var body: some View {
         List {
@@ -49,6 +52,15 @@ struct NEISettingsView: View {
                 .disabled(isDeleting)
             }
 
+            Section("Preferences") {
+                Picker("Search Radius", selection: $searchRadiusKm) {
+                    ForEach(radiusOptions, id: \.self) { km in
+                        Text("\(Int(km)) km").tag(km)
+                    }
+                }
+                .pickerStyle(.menu)
+            }
+
             Section {
                 Button(role: .destructive) {
                     showSignOutAlert = true
@@ -68,6 +80,9 @@ struct NEISettingsView: View {
         }
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
+        .onChange(of: searchRadiusKm) { _, newValue in
+            NEIUserPreferences.searchRadiusKm = newValue
+        }
         .sheet(isPresented: $showEditSheet, onDismiss: {
             Task { await vm.load(userId: userId) }
         }) {

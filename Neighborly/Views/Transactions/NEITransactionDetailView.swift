@@ -72,7 +72,7 @@ struct NEITransactionDetailView: View {
                     revieweeId: otherPartyId
                 ) { dismiss() }
             }
-            .sheet(isPresented: $showProfileSheet) {
+            .navigationDestination(isPresented: $showProfileSheet) {
                 NEIUserProfileView(userId: otherPartyId)
             }
             .task {

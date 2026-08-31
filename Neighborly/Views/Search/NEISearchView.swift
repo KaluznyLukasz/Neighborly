@@ -19,19 +19,21 @@ struct NEISearchView: View {
         NavigationStack {
             VStack(spacing: 0) {
                 searchField
-                if vm.searchText.isEmpty && vm.selectedCategory == nil {
+                if vm.searchText.isEmpty {
                     ScrollView { categoryGrid }
                 } else {
-                    categoryChipRow
-                    resultsList
+                    resultsList(vm.filteredOffers)
                 }
             }
             .navigationTitle("Search")
             .navigationBarTitleDisplayMode(.large)
+            .navigationDestination(for: SearchDestination.self) { destination in
+                categoryResultsView(for: destination)
+            }
         }
         .task {
             locationManager.requestPermission()
-            await vm.loadOffers(near: locationManager.userCoordinate ?? searchDefaultCenter)
+            await vm.loadOffers(near: locationManager.userCoordinate ?? searchDefaultCenter, currentUserId: authService.currentUser?.uid ?? "")
         }
         .sheet(item: $selectedOffer) { offer in
             NEIOfferDetailView(
@@ -68,100 +70,67 @@ struct NEISearchView: View {
 
     private var categoryGrid: some View {
         LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
-            categoryTile(title: "All", systemImage: "square.grid.2x2.fill", color: .neiOnyx, isSelected: vm.selectedCategory == nil) {
-                vm.selectedCategory = nil
+            NavigationLink(value: SearchDestination.all) {
+                categoryTile(title: "All", systemImage: "square.grid.2x2.fill", color: .neiOnyx)
             }
+            .buttonStyle(.plain)
+
             ForEach(OfferCategory.allCases) { category in
-                categoryTile(title: category.displayName, systemImage: category.systemImage, color: category.color, isSelected: vm.selectedCategory == category) {
-                    vm.selectedCategory = category
+                NavigationLink(value: SearchDestination.category(category)) {
+                    categoryTile(title: category.displayName, systemImage: category.systemImage, color: category.color)
                 }
+                .buttonStyle(.plain)
             }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
     }
 
-    private func categoryTile(title: String, systemImage: String, color: Color, isSelected: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            ZStack(alignment: .bottomLeading) {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(color.gradient)
+    private func categoryTile(title: String, systemImage: String, color: Color) -> some View {
+        ZStack(alignment: .bottomLeading) {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(color.gradient)
 
-                Image(systemName: systemImage)
-                    .font(.system(size: 64, weight: .bold))
-                    .foregroundStyle(.white.opacity(0.22))
-                    .rotationEffect(.degrees(-12))
-                    .offset(x: 22, y: 14)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                    .clipped()
+            Image(systemName: systemImage)
+                .font(.system(size: 64, weight: .bold))
+                .foregroundStyle(.white.opacity(0.22))
+                .rotationEffect(.degrees(-12))
+                .offset(x: 22, y: 14)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                .clipped()
 
-                Text(title)
-                    .font(.subheadline.weight(.bold))
-                    .foregroundStyle(.white)
-                    .lineLimit(2)
-                    .padding(12)
-            }
-            .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(Color.white, lineWidth: isSelected ? 3 : 0)
-            )
-            .overlay(alignment: .topTrailing) {
-                if isSelected {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.white)
-                        .padding(8)
-                }
-            }
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .shadow(color: .black.opacity(0.15), radius: 4, y: 2)
-            .scaleEffect(isSelected ? 0.97 : 1.0)
-            .animation(.easeOut(duration: 0.15), value: isSelected)
-        }
-        .aspectRatio(1.8, contentMode: .fit)
-        .buttonStyle(.plain)
-    }
-
-    private var categoryChipRow: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                categoryChip(title: "All", color: .neiOnyx, isSelected: vm.selectedCategory == nil) {
-                    vm.selectedCategory = nil
-                }
-                ForEach(OfferCategory.allCases) { category in
-                    categoryChip(title: category.displayName, color: category.color, isSelected: vm.selectedCategory == category) {
-                        vm.selectedCategory = vm.selectedCategory == category ? nil : category
-                    }
-                }
-            }
-            .padding(.horizontal, 16)
-        }
-        .padding(.vertical, 8)
-    }
-
-    private func categoryChip(title: String, color: Color, isSelected: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
             Text(title)
-                .font(.caption)
-                .fontWeight(.semibold)
+                .font(.subheadline.weight(.bold))
                 .foregroundStyle(.white)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(isSelected ? color : Color(.systemGray4))
-                .clipShape(Capsule())
+                .lineLimit(2)
+                .padding(12)
         }
-        .buttonStyle(.plain)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .shadow(color: .black.opacity(0.15), radius: 4, y: 2)
+        .aspectRatio(1.8, contentMode: .fit)
     }
 
     @ViewBuilder
-    private var resultsList: some View {
-        if vm.filteredOffers.isEmpty {
+    private func categoryResultsView(for destination: SearchDestination) -> some View {
+        let offers = switch destination {
+        case .all: vm.offers
+        case .category(let category): vm.offers.filter { $0.category == category }
+        }
+        resultsList(offers)
+            .navigationTitle(destination.title)
+            .navigationBarTitleDisplayMode(.inline)
+    }
+
+    @ViewBuilder
+    private func resultsList(_ offers: [Offer]) -> some View {
+        if offers.isEmpty {
             Text("No offers match your search")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             List {
-                ForEach(vm.filteredOffers) { offer in
+                ForEach(offers) { offer in
                     Button {
                         selectedOffer = offer
                     } label: {
@@ -172,8 +141,20 @@ struct NEISearchView: View {
             }
             .listStyle(.plain)
             .refreshable {
-                await vm.loadOffers(near: locationManager.userCoordinate ?? searchDefaultCenter)
+                await vm.loadOffers(near: locationManager.userCoordinate ?? searchDefaultCenter, currentUserId: authService.currentUser?.uid ?? "")
             }
+        }
+    }
+}
+
+private enum SearchDestination: Hashable {
+    case all
+    case category(OfferCategory)
+
+    var title: String {
+        switch self {
+        case .all: return "All Offers"
+        case .category(let category): return category.displayName
         }
     }
 }

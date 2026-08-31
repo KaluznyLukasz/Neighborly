@@ -18,6 +18,11 @@ service cloud.firestore {
       match /favorites/{offerId} {
         allow read, write: if isSignedIn() && request.auth.uid == userId;
       }
+
+      // /users/{userId}/blocked/{blockedUserId} — zablokowani użytkownicy
+      match /blocked/{blockedUserId} {
+        allow read, write: if isSignedIn() && request.auth.uid == userId;
+      }
     }
 
     // /offers/{offerId}

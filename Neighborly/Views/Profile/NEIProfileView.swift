@@ -44,7 +44,6 @@ struct NEIProfileView: View {
 
                 VStack(spacing: 16) {
                     postsSection
-                    savedSection
                     reviewsSection
                     settingsSection
                 }
@@ -147,28 +146,6 @@ struct NEIProfileView: View {
         }
     }
 
-    private var savedSection: some View {
-        sectionCard(title: "Saved") {
-            NavigationLink {
-                NEISavedOffersView(
-                    currentUserId: uid,
-                    currentUserName: vm.user?.displayName ?? authService.currentUser?.displayName ?? ""
-                )
-            } label: {
-                HStack {
-                    Label("Saved Offers", systemImage: "bookmark")
-                        .font(.subheadline)
-                        .foregroundStyle(.primary)
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                }
-                .padding(.vertical, 2)
-            }
-        }
-    }
-
     private var reviewsSection: some View {
         sectionCard(title: "Reviews") {
             if vm.reviews.isEmpty {
@@ -190,21 +167,75 @@ struct NEIProfileView: View {
 
     private var settingsSection: some View {
         sectionCard(title: "Account") {
+            ShareLink(item: "Check out Neighborly — a neighbor-to-neighbor app for lending a hand and getting help nearby!") {
+                settingsRow(title: "Invite Neighbors", systemImage: "square.and.arrow.up", iconColor: Color.neiAmber, iconBackground: Color.neiAmberLight, showChevron: false)
+            }
+            .buttonStyle(.plain)
+
+            Divider().padding(.leading, 52)
+
+            NavigationLink {
+                NEISavedOffersView(
+                    currentUserId: uid,
+                    currentUserName: vm.user?.displayName ?? authService.currentUser?.displayName ?? ""
+                )
+            } label: {
+                settingsRow(title: "Saved Offers", systemImage: "bookmark.fill", iconColor: Color.neiGreen, iconBackground: Color.neiGreenLight)
+            }
+            .buttonStyle(.plain)
+
+            Divider().padding(.leading, 52)
+
+            NavigationLink {
+                NEIGuidelinesView()
+            } label: {
+                settingsRow(title: "Community Guidelines", systemImage: "hand.raised.fill", iconColor: Color(.systemGray), iconBackground: Color(.systemGray5))
+            }
+            .buttonStyle(.plain)
+
+            Divider().padding(.leading, 52)
+
             NavigationLink {
                 NEISettingsView(vm: vm, userId: uid)
             } label: {
-                HStack {
-                    Label("Settings", systemImage: "gearshape")
-                        .font(.subheadline)
-                        .foregroundStyle(.primary)
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                }
-                .padding(.vertical, 2)
+                settingsRow(title: "Settings", systemImage: "gearshape.fill", iconColor: Color(.systemGray), iconBackground: Color(.systemGray5))
+            }
+            .buttonStyle(.plain)
+
+            Divider().padding(.leading, 52)
+
+            NavigationLink {
+                NEIBlockedUsersView(currentUserId: uid)
+            } label: {
+                settingsRow(title: "Blocked Users", systemImage: "person.fill.xmark", iconColor: Color.neiRed, iconBackground: Color.neiRed.opacity(0.15))
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private func settingsRow(title: String, systemImage: String, iconColor: Color, iconBackground: Color, showChevron: Bool = true) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: systemImage)
+                .font(.subheadline)
+                .foregroundStyle(iconColor)
+                .frame(width: 36, height: 36)
+                .background(iconBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 9))
+
+            Text(title)
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundStyle(.primary)
+
+            Spacer()
+
+            if showChevron {
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
             }
         }
+        .padding(.vertical, 2)
     }
 
     @ViewBuilder
