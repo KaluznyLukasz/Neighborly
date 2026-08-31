@@ -1,12 +1,10 @@
 import SwiftUI
-import FirebaseAuth
 
-struct NEIProfileView: View {
-    @EnvironmentObject var authService: NEIAuthService
+struct NEIUserProfileView: View {
+    let userId: String
+
     @State private var vm = NEIProfileViewModel()
-    @State private var showEditSheet = false
-
-    private var uid: String { authService.currentUser?.uid ?? "" }
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
@@ -20,18 +18,12 @@ struct NEIProfileView: View {
             }
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { toolbarItems }
-            .sheet(isPresented: $showEditSheet, onDismiss: {
-                Task { await vm.load(userId: uid) }
-            }) {
-                NEIEditProfileView(
-                    vm: vm,
-                    userId: uid,
-                    currentDisplayName: authService.currentUser?.displayName ?? "",
-                    currentEmail: authService.currentUser?.email ?? ""
-                )
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") { dismiss() }
+                }
             }
-            .task { await vm.load(userId: uid) }
+            .task { await vm.load(userId: userId) }
         }
     }
 
@@ -44,15 +36,12 @@ struct NEIProfileView: View {
 
                 VStack(spacing: 16) {
                     postsSection
-                    savedSection
                     reviewsSection
-                    settingsSection
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 24)
             }
         }
-        .refreshable { await vm.load(userId: uid) }
         .background(Color(.systemGroupedBackground))
     }
 
@@ -61,14 +50,14 @@ struct NEIProfileView: View {
             VStack(spacing: 14) {
                 NEIAvatarView(
                     url: vm.user?.avatarURL,
-                    name: vm.user?.displayName ?? authService.currentUser?.displayName ?? "",
+                    name: vm.user?.displayName ?? "",
                     size: 100,
                     base64: vm.user?.avatarBase64
                 )
                 .padding(.top, 28)
 
                 VStack(spacing: 6) {
-                    Text(vm.user?.displayName ?? authService.currentUser?.displayName ?? "")
+                    Text(vm.user?.displayName ?? "")
                         .font(.title2)
                         .fontWeight(.bold)
 
@@ -129,7 +118,7 @@ struct NEIProfileView: View {
     }
 
     private var postsSection: some View {
-        sectionCard(title: "My Posts") {
+        sectionCard(title: "Posts") {
             if vm.offers.isEmpty {
                 Text("No posts yet")
                     .font(.subheadline)
@@ -143,28 +132,6 @@ struct NEIProfileView: View {
                     }
                     OfferRow(offer: offer)
                 }
-            }
-        }
-    }
-
-    private var savedSection: some View {
-        sectionCard(title: "Saved") {
-            NavigationLink {
-                NEISavedOffersView(
-                    currentUserId: uid,
-                    currentUserName: vm.user?.displayName ?? authService.currentUser?.displayName ?? ""
-                )
-            } label: {
-                HStack {
-                    Label("Saved Offers", systemImage: "bookmark")
-                        .font(.subheadline)
-                        .foregroundStyle(.primary)
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                }
-                .padding(.vertical, 2)
             }
         }
     }
@@ -184,25 +151,6 @@ struct NEIProfileView: View {
                     }
                     ReviewRow(review: review)
                 }
-            }
-        }
-    }
-
-    private var settingsSection: some View {
-        sectionCard(title: "Account") {
-            NavigationLink {
-                NEISettingsView(vm: vm, userId: uid)
-            } label: {
-                HStack {
-                    Label("Settings", systemImage: "gearshape")
-                        .font(.subheadline)
-                        .foregroundStyle(.primary)
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                }
-                .padding(.vertical, 2)
             }
         }
     }
@@ -227,90 +175,5 @@ struct NEIProfileView: View {
             .clipShape(RoundedRectangle(cornerRadius: 14))
             .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
         }
-    }
-
-    @ToolbarContentBuilder
-    private var toolbarItems: some ToolbarContent {
-        ToolbarItem(placement: .topBarTrailing) {
-            Button("Edit") { showEditSheet = true }
-                .foregroundStyle(Color.neiGreen)
-        }
-    }
-}
-
-struct OfferRow: View {
-    let offer: Offer
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: offer.category.systemImage)
-                .font(.subheadline)
-                .foregroundStyle(Color.neiGreen)
-                .frame(width: 36, height: 36)
-                .background(Color.neiGreenLight)
-                .clipShape(RoundedRectangle(cornerRadius: 9))
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(offer.title)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                if let address = offer.address, !address.isEmpty {
-                    Text(address)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                } else {
-                    Text(offer.category.displayName)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            Spacer()
-
-            VStack(alignment: .trailing, spacing: 2) {
-                if !offer.isActive {
-                    Text("Paused")
-                        .font(.caption2)
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 3)
-                        .background(Color(.systemGray5))
-                        .foregroundStyle(.secondary)
-                        .clipShape(Capsule())
-                }
-                Text(offer.createdAt, style: .relative)
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-            }
-        }
-        .padding(.vertical, 4)
-    }
-}
-
-struct ReviewRow: View {
-    let review: Review
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                NEIRatingView(rating: Double(review.rating), reviewCount: 0, starSize: 12, showNoReviewsText: false)
-                Spacer()
-                Text(review.createdAt, style: .date)
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-            }
-
-            Text(review.reviewerName)
-                .font(.caption)
-                .fontWeight(.semibold)
-                .foregroundStyle(.secondary)
-
-            if let comment = review.comment, !comment.isEmpty {
-                Text(comment)
-                    .font(.subheadline)
-                    .foregroundStyle(.primary)
-            }
-        }
-        .padding(.vertical, 4)
     }
 }

@@ -8,6 +8,7 @@
 import Foundation
 import CoreLocation
 import FirebaseFirestore
+import SwiftUI
 
 enum OfferCategory: String, Codable, CaseIterable, Identifiable {
     case tools     = "tools"
@@ -35,6 +36,16 @@ enum OfferCategory: String, Codable, CaseIterable, Identifiable {
         case .food:     return "fork.knife"
         case .services: return "person.fill.checkmark"
         case .items:    return "shippingbox"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .tools:    return .neiAmber
+        case .help:     return .neiGreen
+        case .food:     return .neiRed
+        case .services: return .neiPurple
+        case .items:    return .neiBlue
         }
     }
 }

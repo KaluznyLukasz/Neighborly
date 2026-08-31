@@ -13,7 +13,6 @@ final class NEIMapViewModel {
     var offers: [Offer] = []
     var isLoading = false
     var errorMessage: String?
-    var selectedOffer: Offer?
 
     private let offerService = NEIOfferService()
 

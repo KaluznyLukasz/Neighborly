@@ -65,6 +65,11 @@ struct ContentView: View {
                         .tabItem {
                             Label("Profile", systemImage: "person.crop.circle.fill")
                         }
+
+                    NEISearchView()
+                        .tabItem {
+                            Label("Search", systemImage: "magnifyingglass")
+                        }
                 }
                 .task {
                     if let uid = authService.currentUser?.uid {

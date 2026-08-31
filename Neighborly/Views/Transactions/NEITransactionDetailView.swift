@@ -13,11 +13,13 @@ struct NEITransactionDetailView: View {
 
     @State private var showReviewSheet = false
     @State private var showChatSheet = false
+    @State private var showProfileSheet = false
     @State private var canReview = false
     @Environment(\.dismiss) private var dismiss
 
     private let reviewService = NEIReviewService()
     private var isOwner: Bool { transaction.ownerId == currentUserId }
+    private var otherPartyId: String { isOwner ? transaction.requesterId : transaction.ownerId }
 
     var body: some View {
         NavigationStack {
@@ -56,7 +58,7 @@ struct NEITransactionDetailView: View {
                     .tint(Color.green)
                 }
             }
-            .sheet(isPresented: $showChatSheet) {
+            .navigationDestination(isPresented: $showChatSheet) {
                 NEIChatView(
                     transaction: transaction,
                     currentUserId: currentUserId,
@@ -67,8 +69,11 @@ struct NEITransactionDetailView: View {
                 NEIReviewView(
                     transaction: transaction,
                     reviewerId: currentUserId,
-                    revieweeId: isOwner ? transaction.requesterId : transaction.ownerId
+                    revieweeId: otherPartyId
                 ) { dismiss() }
+            }
+            .sheet(isPresented: $showProfileSheet) {
+                NEIUserProfileView(userId: otherPartyId)
             }
             .task {
                 if transaction.status == .completed {
@@ -100,10 +105,26 @@ struct NEITransactionDetailView: View {
 
     private var detailCard: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label(isOwner ? "Volunteer: \(transaction.requesterName)" : "Your application",
-                  systemImage: "person.fill")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+            if isOwner {
+                Button {
+                    showProfileSheet = true
+                } label: {
+                    HStack {
+                        Label("Volunteer: \(transaction.requesterName)", systemImage: "person.fill")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+                .buttonStyle(.plain)
+            } else {
+                Label("Your application", systemImage: "person.fill")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)

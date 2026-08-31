@@ -8,6 +8,7 @@ import CoreLocation
 import PhotosUI
 import MapKit
 
+@MainActor
 @Observable
 final class AddressCompleter: NSObject, MKLocalSearchCompleterDelegate {
     var suggestions: [MKLocalSearchCompletion] = []
@@ -24,12 +25,13 @@ final class AddressCompleter: NSObject, MKLocalSearchCompleterDelegate {
         completer.queryFragment = query
     }
 
-    func completerDidUpdateResults(_ completer: MKLocalSearchCompleter) {
-        suggestions = Array(completer.results.prefix(5))
+    nonisolated func completerDidUpdateResults(_ completer: MKLocalSearchCompleter) {
+        let results = Array(completer.results.prefix(5))
+        Task { @MainActor in self.suggestions = results }
     }
 
-    func completer(_ completer: MKLocalSearchCompleter, didFailWithError error: Error) {
-        suggestions = []
+    nonisolated func completer(_ completer: MKLocalSearchCompleter, didFailWithError error: Error) {
+        Task { @MainActor in self.suggestions = [] }
     }
 }
 
@@ -39,6 +41,10 @@ struct NEICreateOfferView: View {
     let onSaved: () -> Void
 
     @State private var vm = NEIOfferViewModel()
+    @State private var title = ""
+    @State private var description = ""
+    @State private var address = ""
+    @State private var category: OfferCategory = .tools
     @State private var photosPickerItem: PhotosPickerItem?
     @State private var completer = AddressCompleter()
     @State private var showSuggestions = false
@@ -49,9 +55,9 @@ struct NEICreateOfferView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
-                    NEIInputField(label: "Title", placeholder: "e.g. Help walking my dog", text: $vm.title)
+                    NEIInputField(label: "Title", placeholder: "e.g. Help walking my dog", text: $title)
 
-                    NEIInputField(label: "Description", placeholder: "When, how long, what's needed...", text: $vm.description)
+                    NEIInputField(label: "Description", placeholder: "When, how long, what's needed...", text: $description)
 
                     addressField
 
@@ -78,6 +84,10 @@ struct NEICreateOfferView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
+                        vm.title = title
+                        vm.description = description
+                        vm.address = address
+                        vm.category = category
                         Task { await vm.createOffer(ownerId: ownerId, fallbackCoordinate: coordinate) }
                     } label: {
                         if vm.isLoading {
@@ -113,11 +123,11 @@ struct NEICreateOfferView: View {
                 .fontWeight(.medium)
                 .foregroundStyle(.secondary)
 
-            TextField("e.g. ul. Marszałkowska 10, Warsaw", text: $vm.address)
+            TextField("e.g. ul. Marszałkowska 10, Warsaw", text: $address)
                 .padding(12)
                 .background(Color(.systemBackground))
                 .clipShape(RoundedRectangle(cornerRadius: 10))
-                .onChange(of: vm.address) { _, value in
+                .onChange(of: address) { _, value in
                     if skipNextChange { skipNextChange = false; return }
                     completer.update(query: value)
                     showSuggestions = !value.isEmpty
@@ -131,7 +141,7 @@ struct NEICreateOfferView: View {
                                 ? suggestion.title
                                 : "\(suggestion.title), \(suggestion.subtitle)"
                             skipNextChange = true
-                            vm.address = full
+                            address = full
                             showSuggestions = false
                             completer.suggestions = []
                         } label: {
@@ -172,14 +182,14 @@ struct NEICreateOfferView: View {
                 HStack(spacing: 10) {
                     ForEach(OfferCategory.allCases) { cat in
                         Button {
-                            vm.category = cat
+                            category = cat
                         } label: {
                             Label(cat.displayName, systemImage: cat.systemImage)
                                 .font(.subheadline)
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 8)
-                                .background(vm.category == cat ? Color.green : Color(.systemGray6))
-                                .foregroundStyle(vm.category == cat ? .white : .primary)
+                                .background(category == cat ? Color.green : Color(.systemGray6))
+                                .foregroundStyle(category == cat ? .white : .primary)
                                 .clipShape(Capsule())
                         }
                     }

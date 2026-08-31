@@ -63,7 +63,7 @@ struct NEITransactionListView: View {
         if selectedTab == 2 {
             List {
                 ForEach(myOffers) { offer in
-                    OfferRow(offer: offer)
+                    TransactionOfferRow(offer: offer)
                         .listRowBackground(Color(.systemBackground))
                 }
                 .onDelete { indexSet in
@@ -169,7 +169,7 @@ private struct TransactionRow: View {
     }
 }
 
-private struct OfferRow: View {
+private struct TransactionOfferRow: View {
     let offer: Offer
 
     var body: some View {

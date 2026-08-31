@@ -8,6 +8,7 @@ import SwiftUI
 struct NEISignInView: View {
     @Bindable var vm: NEIAuthViewModel
     let onSwitchToSignUp: () -> Void
+    @State private var showForgotPassword = false
 
     var body: some View {
         ScrollView {
@@ -30,6 +31,13 @@ struct NEISignInView: View {
                         text: $vm.password,
                         isSecure: true
                     )
+
+                    Button("Forgot password?") {
+                        showForgotPassword = true
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.green)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
                 }
 
                 if let error = vm.errorMessage {
@@ -52,6 +60,9 @@ struct NEISignInView: View {
             .padding(24)
         }
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
+        .sheet(isPresented: $showForgotPassword) {
+            NEIForgotPasswordView(vm: vm)
+        }
     }
 
     private var header: some View {

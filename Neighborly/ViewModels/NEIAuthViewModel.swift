@@ -16,6 +16,11 @@ final class NEIAuthViewModel {
     var isLoading = false
     var errorMessage: String?
 
+    var resetEmail = ""
+    var resetIsLoading = false
+    var resetErrorMessage: String?
+    var resetSuccessMessage: String?
+
     private let authService: NEIAuthService
 
     init(authService: NEIAuthService) {
@@ -48,6 +53,23 @@ final class NEIAuthViewModel {
 
     func signOut() {
         try? authService.signOut()
+    }
+
+    func sendPasswordReset() async {
+        resetErrorMessage = nil
+        resetSuccessMessage = nil
+        if resetEmail.trimmingCharacters(in: .whitespaces).isEmpty {
+            resetErrorMessage = "Enter email."
+            return
+        }
+        resetIsLoading = true
+        do {
+            try await authService.sendPasswordReset(email: resetEmail)
+            resetSuccessMessage = "Password reset email sent. Check your inbox."
+        } catch {
+            resetErrorMessage = error.localizedDescription
+        }
+        resetIsLoading = false
     }
 
     private enum Mode { case signIn, signUp }

@@ -41,13 +41,13 @@
               }
             }
           ],
-          "image-name" : "person.fill.svg",
-          "name" : "person.fill",
+          "image-name" : "Vector.svg",
+          "name" : "Vector",
           "position" : {
-            "scale" : 0.25,
+            "scale" : 0.4,
             "translation-in-points" : [
-              0,
-              -13
+              -0.21625000000005912,
+              11
             ]
           }
         }
@@ -113,13 +113,13 @@
               }
             }
           ],
-          "image-name" : "person.fill 3.svg",
-          "name" : "person.fill 3",
+          "image-name" : "Vector.svg",
+          "name" : "Vector",
           "position" : {
-            "scale" : 0.18,
+            "scale" : 0.29,
             "translation-in-points" : [
-              127.69079999999997,
-              26.839450000000056
+              128.11890000000005,
+              49.9914
             ]
           }
         },
@@ -143,13 +143,13 @@
               }
             }
           ],
-          "image-name" : "person.fill 3.svg",
-          "name" : "person.fill 3",
+          "image-name" : "Vector.svg",
+          "name" : "Vector",
           "position" : {
-            "scale" : 0.18,
+            "scale" : 0.29,
             "translation-in-points" : [
               -127.69079999999997,
-              26.839450000000056
+              50.51570000000004
             ]
           }
         }
@@ -220,10 +220,10 @@
           "image-name" : "Vector.png",
           "name" : "Vector",
           "position" : {
-            "scale" : 0.695,
+            "scale" : 0.705,
             "translation-in-points" : [
               0.3550000000000182,
-              -48.24117500000011
+              -24.56492500000013
             ]
           }
         }

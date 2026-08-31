@@ -16,14 +16,12 @@ extension CLLocationCoordinate2D: @retroactive Equatable {
     }
 }
 
+private let defaultCenter = CLLocationCoordinate2D(latitude: 52.2297, longitude: 21.0122)
+private let defaultSpan   = MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
+
 @Observable
 final class LocationManager: NSObject, CLLocationManagerDelegate {
-    var position: MapCameraPosition = .region(MKCoordinateRegion(
-        center: CLLocationCoordinate2D(latitude: 52.2297, longitude: 21.0122),
-        span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
-    ))
     var userCoordinate: CLLocationCoordinate2D?
-    var mapCenter = CLLocationCoordinate2D(latitude: 52.2297, longitude: 21.0122)
     var authorizationStatus: CLAuthorizationStatus = .notDetermined
 
     private let manager = CLLocationManager()
@@ -49,11 +47,6 @@ final class LocationManager: NSObject, CLLocationManagerDelegate {
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
         userCoordinate = location.coordinate
-        mapCenter = location.coordinate
-        position = .region(MKCoordinateRegion(
-            center: location.coordinate,
-            span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
-        ))
         manager.stopUpdatingLocation()
     }
 }
@@ -62,17 +55,21 @@ struct NEIMapView: View {
     @EnvironmentObject var authService: NEIAuthService
     @State private var locationManager = LocationManager()
     @State private var mapVM = NEIMapViewModel()
+    @State private var selectedOffer: Offer?
     @State private var showCreateOffer = false
+    @State private var mapPosition: MapCameraPosition = .region(
+        MKCoordinateRegion(center: defaultCenter, span: defaultSpan)
+    )
 
     var body: some View {
-        Map(position: $locationManager.position) {
+        Map(position: $mapPosition) {
             UserAnnotation()
 
             ForEach(mapVM.offers) { offer in
                 Annotation("", coordinate: offer.coordinate) {
                     NEIOfferAnnotationView(offer: offer)
                         .onTapGesture {
-                            mapVM.selectedOffer = offer
+                            selectedOffer = offer
                         }
                 }
             }
@@ -94,7 +91,7 @@ struct NEIMapView: View {
                     if mapVM.isLoading {
                         ProgressView()
                             .padding(10)
-                            .background(.regularMaterial)
+                            .background(Color(.systemBackground))
                             .clipShape(Circle())
                     }
                     fab
@@ -107,14 +104,15 @@ struct NEIMapView: View {
         }
         .onAppear {
             locationManager.requestPermission()
-            // Load immediately with best-available coord — onChange misses values set before view appears
-            Task { await mapVM.loadOffers(near: locationManager.userCoordinate ?? locationManager.mapCenter) }
+            let coord = locationManager.userCoordinate ?? defaultCenter
+            Task { await mapVM.loadOffers(near: coord) }
         }
         .onChange(of: locationManager.userCoordinate) { _, coord in
             guard let coord else { return }
+            mapPosition = .region(MKCoordinateRegion(center: coord, span: defaultSpan))
             Task { await mapVM.loadOffers(near: coord) }
         }
-        .sheet(item: $mapVM.selectedOffer) { offer in
+        .sheet(item: $selectedOffer) { offer in
             NEIOfferDetailView(
                 offer: offer,
                 currentUserId: authService.currentUser?.uid ?? "",
@@ -130,7 +128,7 @@ struct NEIMapView: View {
         }
         .sheet(isPresented: $showCreateOffer) {
             if let uid = authService.currentUser?.uid {
-                let coord = locationManager.userCoordinate ?? locationManager.mapCenter
+                let coord = locationManager.userCoordinate ?? defaultCenter
                 NEICreateOfferView(
                     ownerId: uid,
                     coordinate: coord,
@@ -150,9 +148,9 @@ struct NEIMapView: View {
                 .font(.title2.weight(.semibold))
                 .foregroundStyle(.white)
                 .frame(width: 56, height: 56)
-                .background(Color.green)
+                .background(Color.neiGreen)
                 .clipShape(Circle())
-                .shadow(radius: 4, y: 2)
+                .overlay(Circle().stroke(Color.black.opacity(0.08), lineWidth: 1))
         }
     }
 
@@ -160,8 +158,9 @@ struct NEIMapView: View {
         Text("Location access denied. Enable in Settings.")
             .font(.caption)
             .padding(8)
-            .background(.regularMaterial)
+            .background(Color(.systemBackground))
             .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.black.opacity(0.08), lineWidth: 1))
     }
 }
 
@@ -172,16 +171,16 @@ struct NEIOfferAnnotationView: View {
         VStack(spacing: 0) {
             ZStack {
                 Circle()
-                    .fill(Color.green)
+                    .fill(Color.neiGreen)
                     .frame(width: 36, height: 36)
-                    .shadow(radius: 2, y: 1)
+                    .overlay(Circle().stroke(Color.white, lineWidth: 2))
                 Image(systemName: offer.category.systemImage)
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(.white)
             }
             Image(systemName: "triangle.fill")
                 .font(.system(size: 8))
-                .foregroundStyle(Color.green)
+                .foregroundStyle(Color.neiGreen)
                 .rotationEffect(.degrees(180))
                 .offset(y: -2)
             Text(offer.title)

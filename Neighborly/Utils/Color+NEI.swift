@@ -13,6 +13,8 @@ extension Color {
     static let neiSurface    = Color(hex: "#F2F2F7")
     static let neiRed        = Color(hex: "#FF3B30")
     static let neiAmber      = Color(hex: "#FF9500")
+    static let neiBlue   = Color(hex: "#5AC8FA")
+    static let neiPurple = Color(hex: "#AF52DE")
 
     init(hex: String) {
         let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)

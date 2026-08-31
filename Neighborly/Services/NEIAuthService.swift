@@ -53,6 +53,22 @@ final class NEIAuthService: ObservableObject {
         currentUser = nil
     }
 
+    /// Usuwa konto uzytkownika: dokument w Firestore, potem konto w Firebase Auth.
+    /// Firebase Auth wymaga swiezego zalogowania - jesli sie nie powiedzie, blad jest
+    /// propagowany dalej, zeby UI mogl poprosic o ponowne zalogowanie.
+    func deleteAccount() async throws {
+        guard let user = currentUser else {
+            throw NSError(domain: "NEIAuthService", code: 0, userInfo: [NSLocalizedDescriptionKey: "No signed-in user."])
+        }
+        try await db.collection("users").document(user.uid).delete()
+        try await user.delete()
+        currentUser = nil
+    }
+
+    func sendPasswordReset(email: String) async throws {
+        try await auth.sendPasswordReset(withEmail: email)
+    }
+
     func refreshCurrentUser() {
         currentUser = auth.currentUser
     }
