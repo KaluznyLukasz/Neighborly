@@ -11,8 +11,17 @@ final class NEITransactionService {
     private let collection = "transactions"
 
     func createTransaction(_ transaction: Transaction) async throws -> String {
-        let ref = try db.collection(collection).addDocument(from: transaction)
-        return ref.documentID
+        // Deterministyczne ID — jedna aplikacja na parę (oferta, wnioskodawca)
+        let id = "\(transaction.offerId)_\(transaction.requesterId)"
+        try db.collection(collection).document(id).setData(from: transaction, merge: false)
+        return id
+    }
+
+    // Zwraca istniejącą transakcję dla pary (oferta, wnioskodawca), jeśli jest
+    func existingTransaction(offerId: String, requesterId: String) async throws -> Transaction? {
+        let id = "\(offerId)_\(requesterId)"
+        let doc = try await db.collection(collection).document(id).getDocument()
+        return try? doc.data(as: Transaction.self)
     }
 
     // Owner's inbox — requests on their offers
@@ -44,5 +53,9 @@ final class NEITransactionService {
     func fetchTransaction(id: String) async throws -> Transaction? {
         let doc = try await db.collection(collection).document(id).getDocument()
         return try? doc.data(as: Transaction.self)
+    }
+
+    func deleteTransaction(id: String) async throws {
+        try await db.collection(collection).document(id).delete()
     }
 }

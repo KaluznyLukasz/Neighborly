@@ -50,6 +50,14 @@ struct NEITransactionListView: View {
                     vm: vm
                 )
             }
+            .alert("Error", isPresented: Binding(
+                get: { vm.errorMessage != nil },
+                set: { if !$0 { vm.errorMessage = nil } }
+            )) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(vm.errorMessage ?? "")
+            }
             .task { await loadAll() }
         }
     }
@@ -64,7 +72,7 @@ struct NEITransactionListView: View {
             List {
                 ForEach(myOffers) { offer in
                     TransactionOfferRow(offer: offer)
-                        .listRowBackground(Color(.systemBackground))
+                        .listRowBackground(Color(.secondarySystemGroupedBackground))
                 }
                 .onDelete { indexSet in
                     Task { await deleteOffers(at: indexSet) }
@@ -80,7 +88,16 @@ struct NEITransactionListView: View {
                     TransactionRow(transaction: transaction, isInbox: selectedTab == 0)
                         .contentShape(Rectangle())
                         .onTapGesture { selectedTransaction = transaction }
-                        .listRowBackground(Color(.systemBackground))
+                        .listRowBackground(Color(.secondarySystemGroupedBackground))
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            if transaction.status == .rejected || transaction.status == .cancelled || transaction.status == .completed {
+                                Button(role: .destructive) {
+                                    Task { await vm.delete(transaction: transaction) }
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
+                        }
                 }
             }
             .listStyle(.plain)

@@ -11,6 +11,7 @@ struct NEITransactionDetailView: View {
     let currentUserName: String
     let vm: NEITransactionViewModel
 
+    @State private var status: TransactionStatus
     @State private var showReviewSheet = false
     @State private var showChatSheet = false
     @State private var showProfileSheet = false
@@ -20,6 +21,14 @@ struct NEITransactionDetailView: View {
     private let reviewService = NEIReviewService()
     private var isOwner: Bool { transaction.ownerId == currentUserId }
     private var otherPartyId: String { isOwner ? transaction.requesterId : transaction.ownerId }
+
+    init(transaction: Transaction, currentUserId: String, currentUserName: String, vm: NEITransactionViewModel) {
+        self.transaction = transaction
+        self.currentUserId = currentUserId
+        self.currentUserName = currentUserName
+        self.vm = vm
+        _status = State(initialValue: transaction.status)
+    }
 
     var body: some View {
         NavigationStack {
@@ -34,9 +43,15 @@ struct NEITransactionDetailView: View {
 
                     actionButtons
 
-                    if canReview && transaction.status == .completed {
-                        NEIPrimaryButton("Leave a Review") {
-                            showReviewSheet = true
+                    if status == .completed {
+                        if canReview {
+                            NEIPrimaryButton("Leave a Review") {
+                                showReviewSheet = true
+                            }
+                        } else {
+                            Label("You reviewed this job", systemImage: "checkmark.circle.fill")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
                         }
                     }
                 }
@@ -76,11 +91,14 @@ struct NEITransactionDetailView: View {
                 NEIUserProfileView(userId: otherPartyId)
             }
             .task {
-                if transaction.status == .completed {
+                if status == .completed {
                     canReview = (try? await reviewService.hasReviewed(
                         transactionId: transaction.id ?? "",
                         reviewerId: currentUserId
                     )) == false
+                    if canReview {
+                        showReviewSheet = true
+                    }
                 }
             }
         }
@@ -96,7 +114,7 @@ struct NEITransactionDetailView: View {
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            NEIStatusBadge(status: transaction.status)
+            NEIStatusBadge(status: status)
         }
         .padding(16)
         .background(Color(.systemBackground))
@@ -149,7 +167,7 @@ struct NEITransactionDetailView: View {
 
     @ViewBuilder
     private var actionButtons: some View {
-        switch transaction.status {
+        switch status {
         case .pending where isOwner:
             VStack(spacing: 10) {
                 NEIPrimaryButton("Accept Volunteer") {
@@ -169,7 +187,12 @@ struct NEITransactionDetailView: View {
 
         case .accepted where isOwner:
             NEIPrimaryButton("Mark as Completed") {
-                Task { await vm.complete(transaction: transaction); dismiss() }
+                Task {
+                    await vm.complete(transaction: transaction)
+                    status = .completed
+                    canReview = true
+                    showReviewSheet = true
+                }
             }
 
         case .pending where !isOwner, .accepted where !isOwner:

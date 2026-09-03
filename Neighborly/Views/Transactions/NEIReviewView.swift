@@ -31,6 +31,8 @@ struct NEIReviewView: View {
 
                     starPicker
 
+                    presetChips
+
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Comment (optional)")
                             .font(.caption)
@@ -71,6 +73,25 @@ struct NEIReviewView: View {
         }
     }
 
+    private var presetChips: some View {
+        NEIFlowLayout(spacing: 8) {
+            ForEach(ReviewPresets.texts, id: \.self) { preset in
+                let isSelected = comment == preset
+                Text(preset)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(isSelected ? Color.green : Color(.systemGray6))
+                    .foregroundStyle(isSelected ? .white : .primary)
+                    .clipShape(Capsule())
+                    .onTapGesture {
+                        comment = isSelected ? "" : preset
+                    }
+            }
+        }
+    }
+
     private var starPicker: some View {
         HStack(spacing: 12) {
             ForEach(1...5, id: \.self) { star in
@@ -85,13 +106,15 @@ struct NEIReviewView: View {
     private func submit() async {
         isLoading = true
         errorMessage = nil
+        let trimmedComment = comment.trimmingCharacters(in: .whitespaces)
+        let finalComment = trimmedComment.isEmpty ? ReviewPresets.texts.randomElement() : trimmedComment
         let review = Review(
             transactionId: transaction.id ?? "",
             reviewerId: reviewerId,
             reviewerName: authService.currentUser?.displayName ?? "User",
             revieweeId: revieweeId,
             rating: rating,
-            comment: comment.trimmingCharacters(in: .whitespaces).isEmpty ? nil : comment,
+            comment: finalComment,
             createdAt: Date()
         )
         do {
