@@ -27,7 +27,7 @@ final class NEIProfileViewModel {
         errorMessage = nil
         async let userResult: NEIUser? = fetchUser(userId)
         async let offersResult: [Offer] = (try? offerService.fetchOffersByOwner(ownerId: userId)) ?? []
-        async let reviewsResult: [Review] = (try? reviewService.fetchReviews(for: userId)) ?? []
+        async let reviewsResult: [Review] = fetchReviews(userId)
         user = await userResult
         offers = await offersResult
         reviews = await reviewsResult
@@ -92,5 +92,14 @@ final class NEIProfileViewModel {
     private func fetchUser(_ userId: String) async -> NEIUser? {
         let doc = try? await db.collection("users").document(userId).getDocument()
         return try? doc?.data(as: NEIUser.self)
+    }
+
+    private func fetchReviews(_ userId: String) async -> [Review] {
+        do {
+            return try await reviewService.fetchReviews(for: userId)
+        } catch {
+            errorMessage = error.localizedDescription
+            return []
+        }
     }
 }

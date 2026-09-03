@@ -13,10 +13,16 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isSignedIn();
       allow write: if isSignedIn() && request.auth.uid == userId;
+      // Inny użytkownik może zaktualizować tylko reviewCount/rating po wystawieniu recenzji
+      allow update: if isSignedIn() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reviewCount', 'rating']);
 
       // /users/{userId}/favorites/{offerId} — zapisane oferty użytkownika
       match /favorites/{offerId} {
-        allow read, write: if isSignedIn() && request.auth.uid == userId;
+        allow read, delete: if isSignedIn() && request.auth.uid == userId;
+        // Nie można polubić własnej oferty
+        allow create, update: if isSignedIn() && request.auth.uid == userId &&
+          get(/databases/$(database)/documents/offers/$(offerId)).data.ownerId != request.auth.uid;
       }
 
       // /users/{userId}/blocked/{blockedUserId} — zablokowani użytkownicy
@@ -36,11 +42,17 @@ service cloud.firestore {
     match /transactions/{transactionId} {
       allow read: if isSignedIn() &&
         (resource.data.requesterId == request.auth.uid || resource.data.ownerId == request.auth.uid);
+      // Deterministyczne ID {offerId}_{requesterId} — brak duplikatów aplikacji
       allow create: if isSignedIn() &&
         request.resource.data.requesterId == request.auth.uid &&
-        request.resource.data.ownerId != request.auth.uid;
+        request.resource.data.ownerId != request.auth.uid &&
+        !exists(/databases/$(database)/documents/transactions/$(transactionId));
       allow update: if isSignedIn() &&
         (resource.data.ownerId == request.auth.uid || resource.data.requesterId == request.auth.uid);
+      // Usuwanie tylko odrzuconych/anulowanych aplikacji przez właściciela lub wnioskodawcę
+      allow delete: if isSignedIn() &&
+        (resource.data.ownerId == request.auth.uid || resource.data.requesterId == request.auth.uid) &&
+        (resource.data.status == 'rejected' || resource.data.status == 'cancelled' || resource.data.status == 'completed');
 
       // /transactions/{transactionId}/messages/{messageId} — czat powiązany z aplikacją
       match /messages/{messageId} {

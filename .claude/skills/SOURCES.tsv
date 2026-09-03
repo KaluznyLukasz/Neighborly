@@ -1,0 +1,18 @@
+# Neighborly vendored-skill provenance — read by /nei-skills-update to refetch + re-prefix.
+# Columns: nei-name <TAB> kind <TAB> repo <TAB> path <TAB> license <TAB> commit
+#   kind=vendored  → external; refetched from repo/path@commit, re-prefixed nei-, LICENSE kept.
+#   path=auto      → single-skill repo; the updater finds the lone SKILL.md.
+#   commit=<sha>   → pinned upstream commit; refetch checks out exactly this SHA.
+# Vendored 2026-09-03 from /Users/macbook/Documents/Framely/.claude/skills (already re-prefixed there).
+#
+# nei-name	kind	repo	path	license	commit
+nei-swiftui-expert-skill	vendored	AvdLee/SwiftUI-Agent-Skill	auto	MIT	f06d1437a3fbec7df6cdce93f77004e5409b31ee
+nei-update-swiftui-apis	vendored	AvdLee/SwiftUI-Agent-Skill	auto	MIT	f06d1437a3fbec7df6cdce93f77004e5409b31ee
+nei-swift-concurrency	vendored	AvdLee/Swift-Concurrency-Agent-Skill	auto	MIT	0d472de78225d2875283c35eaca1c060c493bdb3
+nei-swift-testing-expert	vendored	AvdLee/Swift-Testing-Agent-Skill	auto	MIT	798e9b1a2bcac164d4f0c781908199e754f0bab6
+nei-swift-accessibility	vendored	PasqualeVittoriosi/swift-accessibility-skill	swift-accessibility-skill	MIT	3791850af76f11cffa552b3394f2b8732d7ce3c7
+nei-swiftui-accessibility-auditor	vendored	rgmez/apple-accessibility-skills	skills/swiftui-accessibility-auditor	MIT	0003a098c06a6f66c455b6764050518dfb6a7550
+nei-swift-security	vendored	ivan-magda/swift-security-skill	swift-security-expert	MIT	bda2e0ccee6a64d45ec2b93790d0876c90e4eb89
+nei-writing-for-interfaces	vendored	andrewgleave/skills	writing-for-interfaces	MIT	d6c72b885a1902d4b74d4bd9beca80f2a1b96b51
+nei-stop-slop	vendored	hardikpandya/stop-slop	auto	MIT	8da1f030185bdfe8471220585162991eaeb970e9
+nei-colorkit	vendored	SzpakKamil/ColorKit	auto	MIT	90823f4e7340a45c3b56593ff8ae50e37d96429e

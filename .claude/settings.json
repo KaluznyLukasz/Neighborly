@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          { "type": "command", "command": ".claude/hooks/session-banner.sh" }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": ".claude/hooks/block-commit-to-main.sh" }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          { "type": "command", "command": ".claude/hooks/context-watch.sh" }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "command", "command": ".claude/hooks/stop-checks.sh" }
+        ]
+      }
+    ]
+  },
+  "enabledPlugins": {
+    "swift-concurrency@swift-concurrency-agent-skill": false,
+    "swiftui-expert@swiftui-expert-skill": false,
+    "swift-testing-expert@swift-testing-agent-skill": false
+  }
+}

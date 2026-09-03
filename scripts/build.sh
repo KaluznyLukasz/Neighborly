@@ -1,12 +1,14 @@
 #!/bin/bash
-# Builds Neighborly for the iOS Simulator via CLI.
+# Builds Neighborly via CLI. Default: iOS Simulator.
 #
 # Exists to work around toolchain-level bugs in this machine's Xcode-beta
 # (iOS SDK 27.0) interacting with the project's Firebase SwiftPM graph — see
 # CLAUDE.md "Testing changes" for the full explanation of each workaround
 # below. None of these are app code issues.
 #
-# Usage: scripts/build.sh
+# Usage:
+#   scripts/build.sh                 # simulator (default)
+#   NEI_SDK=iphoneos scripts/build.sh   # physical device (needs signing; see run-device.sh)
 
 set -euo pipefail
 
@@ -17,6 +19,17 @@ export DEVELOPER_DIR
 
 PROJECT="Neighborly.xcodeproj"
 TARGET="Neighborly"
+
+SDK="${NEI_SDK:-iphonesimulator}"
+if [ "$SDK" = "iphoneos" ]; then
+  DESTINATION="generic/platform=iOS"
+  MODMAP_SUFFIX="iphoneos"
+  EXTRA_ARGS=(-allowProvisioningUpdates)
+else
+  DESTINATION="generic/platform=iOS Simulator"
+  MODMAP_SUFFIX="iphonesimulator"
+  EXTRA_ARGS=()
+fi
 
 echo "==> Resolving Swift Package dependencies"
 xcodebuild -resolvePackageDependencies -project "$PROJECT"
@@ -46,24 +59,25 @@ echo "==> Syncing cross-package generated module maps"
 CHECKOUTS="$DD/SourcePackages/checkouts"
 POOL="$(mktemp -d)"
 trap 'rm -rf "$POOL"' EXIT
-for d in "$CHECKOUTS"/*/build/GeneratedModuleMaps-iphonesimulator; do
+for d in "$CHECKOUTS"/*/build/GeneratedModuleMaps-"$MODMAP_SUFFIX"; do
   [ -d "$d" ] && cp -n "$d"/*.modulemap "$POOL"/ 2>/dev/null || true
 done
 if [ -n "$(ls -A "$POOL" 2>/dev/null)" ]; then
   for c in "$CHECKOUTS"/*/; do
-    dst="$c/build/GeneratedModuleMaps-iphonesimulator"
+    dst="$c/build/GeneratedModuleMaps-$MODMAP_SUFFIX"
     mkdir -p "$dst"
     cp -n "$POOL"/*.modulemap "$dst"/ 2>/dev/null || true
   done
 fi
 
-echo "==> Building"
+echo "==> Building ($SDK)"
 xcodebuild build \
   -project "$PROJECT" \
   -target "$TARGET" \
-  -sdk iphonesimulator \
-  -destination 'generic/platform=iOS Simulator' \
+  -sdk "$SDK" \
+  -destination "$DESTINATION" \
   -configuration Debug \
+  ${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"} \
   COMPILER_INDEX_STORE_ENABLE=NO \
   SYMROOT="$DD/Build"
 # COMPILER_INDEX_STORE_ENABLE=NO: workaround 2 — this beta's index-while-

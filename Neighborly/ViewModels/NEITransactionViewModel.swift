@@ -53,6 +53,24 @@ final class NEITransactionViewModel {
         await updateStatus(transaction: transaction, status: .cancelled)
     }
 
+    func delete(transaction: Transaction) async {
+        guard let id = transaction.id else { return }
+        errorMessage = nil
+
+        let inboxIndex = inbox.firstIndex { $0.id == id }
+        let requestsIndex = myRequests.firstIndex { $0.id == id }
+        if let i = inboxIndex { inbox.remove(at: i) }
+        if let i = requestsIndex { myRequests.remove(at: i) }
+
+        do {
+            try await transactionService.deleteTransaction(id: id)
+        } catch {
+            errorMessage = error.localizedDescription
+            if let i = inboxIndex, i <= inbox.count { inbox.insert(transaction, at: min(i, inbox.count)) }
+            if let i = requestsIndex, i <= myRequests.count { myRequests.insert(transaction, at: min(i, myRequests.count)) }
+        }
+    }
+
     private func updateStatus(transaction: Transaction, status: TransactionStatus) async {
         guard let id = transaction.id else { return }
         errorMessage = nil
