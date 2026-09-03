@@ -72,6 +72,7 @@ struct NEIUserProfileView: View {
             }
         }
         .background(Color(.systemGroupedBackground))
+        .refreshable { await vm.load(userId: userId) }
     }
 
     private var heroCard: some View {
@@ -122,16 +123,19 @@ struct NEIUserProfileView: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .background(Color(.systemBackground))
-        .clipShape(
-            UnevenRoundedRectangle(
-                topLeadingRadius: 0,
-                bottomLeadingRadius: 20,
-                bottomTrailingRadius: 20,
-                topTrailingRadius: 0
-            )
-        )
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(heroShape)
+        .overlay(heroShape.strokeBorder(Color(.separator).opacity(0.6), lineWidth: 0.5))
         .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
+    }
+
+    private var heroShape: UnevenRoundedRectangle {
+        UnevenRoundedRectangle(
+            topLeadingRadius: 0,
+            bottomLeadingRadius: 20,
+            bottomTrailingRadius: 20,
+            topTrailingRadius: 0
+        )
     }
 
     private func statColumn(value: String, label: String) -> some View {
@@ -209,6 +213,7 @@ struct NEIUserProfileView: View {
                     Spacer()
                 }
                 .padding(.vertical, 2)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
         }
@@ -230,8 +235,10 @@ struct NEIUserProfileView: View {
             }
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color(.systemBackground))
+            .background(Color(.secondarySystemGroupedBackground))
             .clipShape(RoundedRectangle(cornerRadius: 14))
+            .overlay(RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(Color(.separator).opacity(0.6), lineWidth: 0.5))
             .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
         }
     }

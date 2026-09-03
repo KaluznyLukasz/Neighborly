@@ -42,6 +42,15 @@ struct ContentView: View {
     @EnvironmentObject var authService: NEIAuthService
     @State private var transactionVM = NEITransactionViewModel()
     @State private var showSplash = true
+    @AppStorage("appearanceMode") private var appearanceMode: String = "system"
+
+    private var colorScheme: ColorScheme? {
+        switch appearanceMode {
+        case "light": return .light
+        case "dark": return .dark
+        default: return nil
+        }
+    }
 
     var body: some View {
         Group {
@@ -80,11 +89,15 @@ struct ContentView: View {
                 NEIAuthView(authService: authService)
             }
         }
+        .preferredColorScheme(colorScheme)
         .animation(.easeInOut(duration: 0.4), value: showSplash)
         .animation(.easeInOut, value: authService.isAuthenticated)
         .task {
             let start = Date()
-            while authService.isRestoring { try? await Task.sleep(for: .milliseconds(50)) }
+            let authTimeout: TimeInterval = 5
+            while authService.isRestoring && Date().timeIntervalSince(start) < authTimeout {
+                try? await Task.sleep(for: .milliseconds(50))
+            }
             let elapsed = Date().timeIntervalSince(start)
             let remaining = 1.8 - elapsed
             if remaining > 0 { try? await Task.sleep(for: .seconds(remaining)) }

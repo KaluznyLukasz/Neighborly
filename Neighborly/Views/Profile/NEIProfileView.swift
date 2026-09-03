@@ -4,7 +4,6 @@ import FirebaseAuth
 struct NEIProfileView: View {
     @EnvironmentObject var authService: NEIAuthService
     @State private var vm = NEIProfileViewModel()
-    @State private var showEditSheet = false
 
     private var uid: String { authService.currentUser?.uid ?? "" }
 
@@ -20,17 +19,6 @@ struct NEIProfileView: View {
             }
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { toolbarItems }
-            .sheet(isPresented: $showEditSheet, onDismiss: {
-                Task { await vm.load(userId: uid) }
-            }) {
-                NEIEditProfileView(
-                    vm: vm,
-                    userId: uid,
-                    currentDisplayName: authService.currentUser?.displayName ?? "",
-                    currentEmail: authService.currentUser?.email ?? ""
-                )
-            }
             .task { await vm.load(userId: uid) }
         }
     }
@@ -103,16 +91,19 @@ struct NEIProfileView: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .background(Color(.systemBackground))
-        .clipShape(
-            UnevenRoundedRectangle(
-                topLeadingRadius: 0,
-                bottomLeadingRadius: 20,
-                bottomTrailingRadius: 20,
-                topTrailingRadius: 0
-            )
-        )
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(heroShape)
+        .overlay(heroShape.strokeBorder(Color(.separator).opacity(0.6), lineWidth: 0.5))
         .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
+    }
+
+    private var heroShape: UnevenRoundedRectangle {
+        UnevenRoundedRectangle(
+            topLeadingRadius: 0,
+            bottomLeadingRadius: 20,
+            bottomTrailingRadius: 20,
+            topTrailingRadius: 0
+        )
     }
 
     private func statColumn(value: String, label: String) -> some View {
@@ -128,7 +119,7 @@ struct NEIProfileView: View {
     }
 
     private var postsSection: some View {
-        sectionCard(title: "My Posts") {
+        NEISectionCard(title: "My Posts") {
             if vm.offers.isEmpty {
                 Text("No posts yet")
                     .font(.subheadline)
@@ -147,7 +138,7 @@ struct NEIProfileView: View {
     }
 
     private var reviewsSection: some View {
-        sectionCard(title: "Reviews") {
+        NEISectionCard(title: "Reviews") {
             if vm.reviews.isEmpty {
                 Text("No reviews yet")
                     .font(.subheadline)
@@ -166,9 +157,9 @@ struct NEIProfileView: View {
     }
 
     private var settingsSection: some View {
-        sectionCard(title: "Account") {
+        NEISectionCard(title: "Account") {
             ShareLink(item: "Check out Neighborly — a neighbor-to-neighbor app for lending a hand and getting help nearby!") {
-                settingsRow(title: "Invite Neighbors", systemImage: "square.and.arrow.up", iconColor: Color.neiAmber, iconBackground: Color.neiAmberLight, showChevron: false)
+                NEISettingsRow(title: "Invite Neighbors", systemImage: "square.and.arrow.up", iconColor: Color.neiAmber, iconBackground: Color.neiAmberLight, showChevron: false)
             }
             .buttonStyle(.plain)
 
@@ -180,7 +171,7 @@ struct NEIProfileView: View {
                     currentUserName: vm.user?.displayName ?? authService.currentUser?.displayName ?? ""
                 )
             } label: {
-                settingsRow(title: "Saved Offers", systemImage: "bookmark.fill", iconColor: Color.neiGreen, iconBackground: Color.neiGreenLight)
+                NEISettingsRow(title: "Saved Offers", systemImage: "bookmark.fill", iconColor: Color.neiGreen, iconBackground: Color.neiGreenLight)
             }
             .buttonStyle(.plain)
 
@@ -189,7 +180,7 @@ struct NEIProfileView: View {
             NavigationLink {
                 NEIGuidelinesView()
             } label: {
-                settingsRow(title: "Community Guidelines", systemImage: "hand.raised.fill", iconColor: Color(.systemGray), iconBackground: Color(.systemGray5))
+                NEISettingsRow(title: "Community Guidelines", systemImage: "hand.raised.fill", iconColor: Color(.systemGray), iconBackground: Color(.systemGray5))
             }
             .buttonStyle(.plain)
 
@@ -198,7 +189,7 @@ struct NEIProfileView: View {
             NavigationLink {
                 NEISettingsView(vm: vm, userId: uid)
             } label: {
-                settingsRow(title: "Settings", systemImage: "gearshape.fill", iconColor: Color(.systemGray), iconBackground: Color(.systemGray5))
+                NEISettingsRow(title: "Settings", systemImage: "gearshape.fill", iconColor: Color(.systemGray), iconBackground: Color(.systemGray5))
             }
             .buttonStyle(.plain)
 
@@ -207,66 +198,12 @@ struct NEIProfileView: View {
             NavigationLink {
                 NEIBlockedUsersView(currentUserId: uid)
             } label: {
-                settingsRow(title: "Blocked Users", systemImage: "person.fill.xmark", iconColor: Color.neiRed, iconBackground: Color.neiRed.opacity(0.15))
+                NEISettingsRow(title: "Blocked Users", systemImage: "person.fill.xmark", iconColor: Color.neiRed, iconBackground: Color.neiRed.opacity(0.15))
             }
             .buttonStyle(.plain)
         }
     }
 
-    private func settingsRow(title: String, systemImage: String, iconColor: Color, iconBackground: Color, showChevron: Bool = true) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: systemImage)
-                .font(.subheadline)
-                .foregroundStyle(iconColor)
-                .frame(width: 36, height: 36)
-                .background(iconBackground)
-                .clipShape(RoundedRectangle(cornerRadius: 9))
-
-            Text(title)
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .foregroundStyle(.primary)
-
-            Spacer()
-
-            if showChevron {
-                Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-            }
-        }
-        .padding(.vertical, 2)
-    }
-
-    @ViewBuilder
-    private func sectionCard<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text(title)
-                .font(.footnote)
-                .fontWeight(.semibold)
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
-                .padding(.bottom, 8)
-                .padding(.leading, 4)
-
-            VStack(alignment: .leading, spacing: 10) {
-                content()
-            }
-            .padding(16)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color(.systemBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 14))
-            .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
-        }
-    }
-
-    @ToolbarContentBuilder
-    private var toolbarItems: some ToolbarContent {
-        ToolbarItem(placement: .topBarTrailing) {
-            Button("Edit") { showEditSheet = true }
-                .foregroundStyle(Color.neiGreen)
-        }
-    }
 }
 
 struct OfferRow: View {
