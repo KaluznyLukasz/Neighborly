@@ -17,16 +17,21 @@ struct NEISearchView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                searchField
+            ScrollView {
                 if vm.searchText.isEmpty {
-                    ScrollView { categoryGrid }
+                    categoryGrid
                 } else {
                     resultsList(vm.filteredOffers)
                 }
             }
+            .scrollDismissesKeyboard(.immediately)
+            .background(Color(.systemGroupedBackground))
+            .refreshable {
+                await vm.loadOffers(near: locationManager.userCoordinate ?? searchDefaultCenter, currentUserId: authService.currentUser?.uid ?? "")
+            }
             .navigationTitle("Search")
             .navigationBarTitleDisplayMode(.large)
+            .searchable(text: $vm.searchText, prompt: "Search offers")
             .navigationDestination(for: SearchDestination.self) { destination in
                 categoryResultsView(for: destination)
             }
@@ -40,32 +45,13 @@ struct NEISearchView: View {
                 offer: offer,
                 currentUserId: authService.currentUser?.uid ?? "",
                 currentUserName: authService.currentUser?.displayName ?? "User",
-                onDelete: nil
-            )
-            .presentationDetents([.medium, .large])
-        }
-    }
-
-    private var searchField: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary)
-            TextField("Search offers", text: $vm.searchText)
-                .textFieldStyle(.plain)
-            if !vm.searchText.isEmpty {
-                Button {
-                    vm.searchText = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
+                onDelete: nil,
+                onActiveChanged: { _ in
+                    Task { await vm.loadOffers(near: locationManager.userCoordinate ?? searchDefaultCenter, currentUserId: authService.currentUser?.uid ?? "") }
                 }
-            }
+            )
+            .id(offer.id)
         }
-        .padding(10)
-        .background(Color.neiSurface)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
-        .padding(.horizontal, 16)
-        .padding(.top, 8)
     }
 
     private var categoryGrid: some View {
@@ -116,7 +102,11 @@ struct NEISearchView: View {
         case .all: vm.offers
         case .category(let category): vm.offers.filter { $0.category == category }
         }
-        resultsList(offers)
+        ScrollView { resultsList(offers) }
+            .background(Color(.systemGroupedBackground))
+            .refreshable {
+                await vm.loadOffers(near: locationManager.userCoordinate ?? searchDefaultCenter, currentUserId: authService.currentUser?.uid ?? "")
+            }
             .navigationTitle(destination.title)
             .navigationBarTitleDisplayMode(.inline)
     }
@@ -127,22 +117,23 @@ struct NEISearchView: View {
             Text("No offers match your search")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(.top, 60)
         } else {
-            List {
+            LazyVStack(spacing: 10) {
                 ForEach(offers) { offer in
                     Button {
                         selectedOffer = offer
                     } label: {
                         OfferRow(offer: offer)
+                            .padding(12)
+                            .background(Color(.secondarySystemGroupedBackground))
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
                     .buttonStyle(.plain)
                 }
             }
-            .listStyle(.plain)
-            .refreshable {
-                await vm.loadOffers(near: locationManager.userCoordinate ?? searchDefaultCenter, currentUserId: authService.currentUser?.uid ?? "")
-            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
         }
     }
 }
