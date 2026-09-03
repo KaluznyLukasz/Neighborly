@@ -164,8 +164,10 @@ struct NEICreateOfferView: View {
                         }
                     }
                 }
-                .background(Color(.systemBackground))
+                .background(Color(.secondarySystemGroupedBackground))
                 .clipShape(RoundedRectangle(cornerRadius: 10))
+                .overlay(RoundedRectangle(cornerRadius: 10)
+                    .strokeBorder(Color(.separator).opacity(0.6), lineWidth: 0.5))
                 .shadow(color: .black.opacity(0.08), radius: 6, y: 3)
             }
         }

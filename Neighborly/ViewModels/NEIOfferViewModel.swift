@@ -28,6 +28,18 @@ final class NEIOfferViewModel {
         isLoading = true
         errorMessage = nil
 
+        do {
+            if try await offerService.countActiveOffers(ownerId: ownerId) >= 3 {
+                errorMessage = "You can have at most 3 active offers. Pause or delete one first."
+                isLoading = false
+                return
+            }
+        } catch {
+            errorMessage = "Couldn't check your existing offers — try again."
+            isLoading = false
+            return
+        }
+
         let coordinate: CLLocationCoordinate2D
         do {
             let placemarks = try await geocoder.geocodeAddressString(address)

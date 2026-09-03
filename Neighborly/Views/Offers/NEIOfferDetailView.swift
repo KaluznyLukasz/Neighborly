@@ -11,58 +11,52 @@ struct NEIOfferDetailView: View {
     let currentUserId: String
     let currentUserName: String
     let onDelete: (() -> Void)?
+    var onActiveChanged: ((Bool) -> Void)? = nil
 
+    @State private var activeOverride: Bool?
+    @State private var togglingActive = false
     @State private var showRequestSheet = false
-    @State private var requestSent = false
+    @State private var alreadyApplied = false
+    @State private var checkingRequest = true
+    @State private var justSent = false
     @State private var showOwnerProfile = false
     @State private var ownerUser: NEIUser?
     @State private var favoriteVM = NEIFavoriteViewModel()
     @Environment(\.dismiss) private var dismiss
 
     var isOwner: Bool { offer.ownerId == currentUserId }
+    private var effectiveActive: Bool { activeOverride ?? offer.isActive }
 
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: 0) {
-                grabHandle
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    headerImage
 
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
-                        if let base64 = offer.imageBase64,
-                           let data = Data(base64Encoded: base64),
-                           let uiImage = UIImage(data: data) {
-                            Image(uiImage: uiImage)
-                                .resizable()
-                                .scaledToFill()
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 220)
-                                .clipped()
-                        }
-
-                        VStack(alignment: .leading, spacing: 16) {
-                            HStack {
-                                NEICategoryBadge(category: offer.category)
-                                Spacer()
-                                Text(offer.createdAt, style: .relative)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                favoriteButton
-                            }
-
-                            Text(offer.title)
-                                .font(.title2)
-                                .fontWeight(.bold)
-
-                            Text(offer.description)
-                                .font(.body)
-                                .foregroundStyle(.secondary)
-
-                            ownerRow
-                        }
-                        .padding(20)
+                    VStack(alignment: .leading, spacing: 6) {
+                        NEICategoryBadge(category: offer.category)
+                        Text(offer.title)
+                            .font(.title2)
+                            .fontWeight(.bold)
+                        Text("Posted \(offer.createdAt, style: .relative) ago")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
                     }
+                    .padding(.horizontal, 20)
+
+                    infoCard
+                        .padding(.horizontal, 20)
+
+                    detailsSection
+                        .padding(.horizontal, 20)
+
+                    ownerSection
+                        .padding(.horizontal, 20)
                 }
+                .padding(.top, offer.imageBase64 == nil ? 12 : 0)
+                .padding(.bottom, 24)
             }
+            .background(Color(.systemGroupedBackground))
             .safeAreaInset(edge: .bottom) {
                 VStack(spacing: 0) {
                     Divider()
@@ -77,18 +71,35 @@ struct NEIOfferDetailView: View {
                 }
                 .background(.regularMaterial)
             }
-            .background(Color(.systemBackground))
-            .task { await loadOwner() }
-            .task {
-                guard let offerId = offer.id else { return }
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+            .task(id: offer.id) { await loadOwner() }
+            .task(id: offer.id) {
+                favoriteVM.favoriteOfferIds.removeAll()
+                guard !isOwner, let offerId = offer.id else { return }
                 await favoriteVM.checkFavorited(offerId: offerId, userId: currentUserId)
+            }
+            .task(id: offer.id) {
+                alreadyApplied = false
+                checkingRequest = true
+                guard !isOwner, let offerId = offer.id else {
+                    checkingRequest = false
+                    return
+                }
+                let existing = try? await NEITransactionService()
+                    .existingTransaction(offerId: offerId, requesterId: currentUserId)
+                alreadyApplied = existing?.id != nil
+                checkingRequest = false
             }
             .sheet(isPresented: $showRequestSheet) {
                 NEIRequestView(
                     offer: offer,
                     requesterId: currentUserId,
                     requesterName: currentUserName,
-                    onSent: { requestSent = true }
+                    onSent: {
+                        alreadyApplied = true
+                        justSent = true
+                    }
                 )
             }
             .navigationDestination(isPresented: $showOwnerProfile) {
@@ -104,39 +115,131 @@ struct NEIOfferDetailView: View {
                 Text(favoriteVM.errorMessage ?? "")
             }
             .overlay(alignment: .top) {
-                if requestSent {
+                if justSent {
                     requestSentBanner
                 }
             }
         }
     }
 
-    private var ownerRow: some View {
-        Button {
-            showOwnerProfile = true
-        } label: {
-            HStack(spacing: 10) {
-                NEIAvatarView(
-                    url: ownerUser?.avatarURL,
-                    name: ownerUser?.displayName ?? "",
-                    size: 36,
-                    base64: ownerUser?.avatarBase64
+    // MARK: - Header
+
+    @ViewBuilder
+    private var headerImage: some View {
+        if let base64 = offer.imageBase64,
+           let data = Data(base64Encoded: base64),
+           let uiImage = UIImage(data: data) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFill()
+                .frame(maxWidth: .infinity)
+                .frame(height: 200)
+                .clipped()
+                .clipShape(
+                    UnevenRoundedRectangle(bottomLeadingRadius: 20, bottomTrailingRadius: 20)
                 )
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(ownerUser?.displayName ?? "Loading...")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                    Text("Posted by")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-            }
         }
-        .buttonStyle(.plain)
+    }
+
+    // MARK: - Info
+
+    private var infoCard: some View {
+        VStack(spacing: 0) {
+            if let address = offer.address, !address.isEmpty {
+                infoRow(icon: "mappin.circle.fill", label: "Location", value: address)
+                Divider().padding(.leading, 52)
+            }
+            infoRow(
+                icon: "clock",
+                label: "Posted",
+                value: offer.createdAt.formatted(date: .abbreviated, time: .shortened)
+            )
+            Divider().padding(.leading, 52)
+            infoRow(icon: "tag", label: "Category", value: offer.category.displayName)
+        }
+        .padding(.vertical, 4)
+        .cardStyle()
+    }
+
+    private func infoRow(icon: String, label: String, value: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .frame(width: 28)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(label)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(value)
+                    .font(.subheadline)
+                    .foregroundStyle(.primary)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+    }
+
+    // MARK: - Details
+
+    private var detailsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Details")
+                .font(.footnote)
+                .fontWeight(.semibold)
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
+                .padding(.leading, 4)
+            Text(offer.description)
+                .font(.body)
+                .foregroundStyle(.primary)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(14)
+                .cardStyle()
+        }
+    }
+
+    // MARK: - Owner
+
+    private var ownerSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Posted by")
+                .font(.footnote)
+                .fontWeight(.semibold)
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
+                .padding(.leading, 4)
+            Button {
+                showOwnerProfile = true
+            } label: {
+                HStack(spacing: 12) {
+                    NEIAvatarView(
+                        url: ownerUser?.avatarURL,
+                        name: ownerUser?.displayName ?? "",
+                        size: 44,
+                        base64: ownerUser?.avatarBase64
+                    )
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(ownerUser?.displayName ?? "Loading…")
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                        Text("View profile")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(14)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .cardStyle()
+        }
     }
 
     private var favoriteButton: some View {
@@ -145,27 +248,24 @@ struct NEIOfferDetailView: View {
             Task { await favoriteVM.toggleFavorite(offerId: offerId, userId: currentUserId) }
         } label: {
             Image(systemName: favoriteVM.isFavorited(offer.id ?? "") ? "bookmark.fill" : "bookmark")
-                .font(.subheadline)
+                .font(.headline)
                 .foregroundStyle(Color.neiGreen)
+                .frame(width: 52, height: 52)
+                .background(Color.neiGreen.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: 14))
         }
         .buttonStyle(.plain)
     }
 
-    private var grabHandle: some View {
-        HStack {
-            Spacer()
-            RoundedRectangle(cornerRadius: 2.5)
-                .fill(Color(.systemGray4))
-                .frame(width: 36, height: 5)
-            Spacer()
-        }
-        .padding(.top, 12)
-        .padding(.bottom, 4)
-    }
-
     private var requestButton: some View {
-        NEIPrimaryButton(requestSent ? "Applied!" : "Offer to Help") {
-            if !requestSent { showRequestSheet = true }
+        HStack(spacing: 12) {
+            NEIPrimaryButton(
+                alreadyApplied ? "Applied" : "Offer to Help",
+                isLoading: checkingRequest
+            ) {
+                if !alreadyApplied && !checkingRequest { showRequestSheet = true }
+            }
+            favoriteButton
         }
     }
 
@@ -181,33 +281,51 @@ struct NEIOfferDetailView: View {
             .transition(.move(edge: .top).combined(with: .opacity))
             .task {
                 try? await Task.sleep(for: .seconds(3))
-                withAnimation { requestSent = false }
+                withAnimation { justSent = false }
             }
     }
 
     private var ownerActions: some View {
-        VStack(spacing: 10) {
-            HStack {
-                Image(systemName: "checkmark.seal.fill")
-                    .foregroundStyle(.green)
-                Text("This is your request")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+        VStack(spacing: 12) {
+            Label(effectiveActive ? "This is your request" : "Paused — hidden from map and search",
+                  systemImage: effectiveActive ? "checkmark.seal.fill" : "pause.circle.fill")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity)
+
+            if let id = offer.id {
+                Button {
+                    let newValue = !effectiveActive
+                    togglingActive = true
+                    Task {
+                        try? await NEIOfferService().setOfferActive(id: id, isActive: newValue)
+                        activeOverride = newValue
+                        togglingActive = false
+                        onActiveChanged?(newValue)
+                    }
+                } label: {
+                    Label(effectiveActive ? "Pause Offer" : "Reactivate Offer",
+                          systemImage: effectiveActive ? "pause.circle" : "play.circle")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .background(Color.neiGreen.opacity(0.12))
+                        .foregroundStyle(Color.neiGreen)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                }
+                .disabled(togglingActive)
             }
-            .frame(maxWidth: .infinity)
 
             if let onDelete {
                 Button(role: .destructive) {
                     onDelete()
                     dismiss()
                 } label: {
-                    Label("Delete Request", systemImage: "trash")
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 52)
-                        .background(Color.red.opacity(0.1))
+                    Text("Delete Request")
+                        .font(.subheadline)
                         .foregroundStyle(.red)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
+                .padding(.top, 2)
             }
         }
     }
@@ -228,8 +346,21 @@ struct NEICategoryBadge: View {
             .fontWeight(.medium)
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
-            .background(Color.green.opacity(0.15))
-            .foregroundStyle(.green)
+            .background(category.color.opacity(0.15))
+            .foregroundStyle(category.color)
             .clipShape(Capsule())
+    }
+}
+
+private extension View {
+    /// Wspólny styl karty: tło elewowane + cienki obrys (kontrast też w dark mode).
+    func cardStyle(cornerRadius: CGFloat = 14) -> some View {
+        self
+            .background(Color(.secondarySystemGroupedBackground))
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .strokeBorder(Color(.separator).opacity(0.6), lineWidth: 0.5)
+            )
     }
 }

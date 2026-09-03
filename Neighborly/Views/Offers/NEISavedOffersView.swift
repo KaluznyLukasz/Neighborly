@@ -44,6 +44,7 @@ struct NEISavedOffersView: View {
                 currentUserName: currentUserName,
                 onDelete: nil
             )
+            .id(offer.id)
         }
     }
 
@@ -155,8 +156,12 @@ private struct SavedOfferCard: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.systemBackground))
+        .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.primary.opacity(0.08), lineWidth: 0.5)
+        )
         .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
     }
 

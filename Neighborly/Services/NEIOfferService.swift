@@ -48,6 +48,14 @@ final class NEIOfferService {
         return try? doc.data(as: Offer.self)
     }
 
+    func countActiveOffers(ownerId: String) async throws -> Int {
+        try await fetchOffersByOwner(ownerId: ownerId).filter { $0.isActive }.count
+    }
+
+    func setOfferActive(id: String, isActive: Bool) async throws {
+        try await db.collection(collection).document(id).updateData(["isActive": isActive])
+    }
+
     func fetchOffersByOwner(ownerId: String) async throws -> [Offer] {
         let snapshot = try await db.collection(collection)
             .whereField("ownerId", isEqualTo: ownerId)

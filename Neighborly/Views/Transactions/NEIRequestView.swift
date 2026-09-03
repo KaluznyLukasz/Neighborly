@@ -83,6 +83,16 @@ struct NEIRequestView: View {
     private func sendRequest() async {
         isLoading = true
         errorMessage = nil
+        // Zamyka wyścig: sprawdź, czy już zaaplikowano, zanim utworzysz transakcję
+        if let existing = try? await transactionService.existingTransaction(
+            offerId: offer.id ?? "", requesterId: requesterId
+        ), existing.id != nil {
+            isLoading = false
+            errorMessage = "You already applied to this offer."
+            onSent()
+            dismiss()
+            return
+        }
         let transaction = Transaction(
             offerId: offer.id ?? "",
             offerTitle: offer.title,

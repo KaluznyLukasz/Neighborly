@@ -51,8 +51,7 @@ struct NEIChatView: View {
                     .lineLimit(1...4)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
-                    .background(Color(.systemGray6))
-                    .clipShape(RoundedRectangle(cornerRadius: 20))
+                    .glassEffect(.regular, in: .rect(cornerRadius: 20))
 
                 Button {
                     Task {
@@ -106,9 +105,13 @@ private struct MessageBubble: View {
                 Text(message.text)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 9)
-                    .background(isMe ? Color.green : Color(.systemBackground))
+                    .background(isMe ? Color.green : Color(.secondarySystemBackground))
                     .foregroundStyle(isMe ? .white : .primary)
                     .clipShape(RoundedRectangle(cornerRadius: 18))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18)
+                            .strokeBorder(Color(.separator).opacity(isMe ? 0 : 0.5), lineWidth: 0.5)
+                    )
                     .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
                 Text(message.createdAt, style: .time)
                     .font(.caption2)
