@@ -48,6 +48,13 @@ final class NEITransactionService {
         ])
     }
 
+    func setDueDate(transactionId: String, dueDate: Date?) async throws {
+        try await db.collection(collection).document(transactionId).updateData([
+            "dueDate": dueDate.map { Timestamp(date: $0) } ?? FieldValue.delete(),
+            "updatedAt": Timestamp(date: Date())
+        ])
+    }
+
     func fetchTransaction(id: String) async throws -> Transaction? {
         let doc = try await db.collection(collection).document(id).getDocument()
         return try? doc.data(as: Transaction.self)
