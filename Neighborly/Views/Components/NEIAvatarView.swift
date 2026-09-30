@@ -14,8 +14,7 @@ struct NEIAvatarView: View {
     var body: some View {
         Group {
             if let b64 = base64,
-               let data = Data(base64Encoded: b64, options: .ignoreUnknownCharacters),
-               let uiImage = UIImage(data: data) {
+               let uiImage = NEIBase64ImageCache.decodedImage(base64: b64) {
                 Image(uiImage: uiImage)
                     .resizable()
                     .scaledToFill()

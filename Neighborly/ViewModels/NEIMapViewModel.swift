@@ -21,13 +21,22 @@ final class NEIMapViewModel {
         isLoading = true
         errorMessage = nil
         do {
-            let fetched = try await offerService.fetchOffers(near: coordinate, radiusKm: NEIUserPreferences.searchRadiusKm)
-            let blockedIds = (try? await blockService.fetchBlockedUserIds(userId: currentUserId)) ?? []
-            offers = fetched.filter { !blockedIds.contains($0.ownerId) }
+            async let fetched = offerService.fetchOffers(near: coordinate, radiusKm: NEIUserPreferences.searchRadiusKm)
+            async let blockedIds = (try? await blockService.fetchBlockedUserIds(userId: currentUserId)) ?? []
+            let (result, blocked) = try await (fetched, blockedIds)
+            offers = result.filter { !blocked.contains($0.ownerId) }
         } catch {
             errorMessage = error.localizedDescription
         }
         isLoading = false
+    }
+
+    // Lista zawiera tylko aktywne oferty (patrz fetchOffers) — po dezaktywacji usuwamy
+    // pinezkę lokalnie zamiast pełnego przeładowania; reaktywacja i tak wymaga
+    // odświeżenia z serwera, więc tam zostawiamy pełny reload
+    func setOfferActive(id: String, isActive: Bool) {
+        guard !isActive else { return }
+        offers.removeAll { $0.id == id }
     }
 
     func deleteOffer(id: String) async {

@@ -12,22 +12,45 @@ final class NEIReviewService {
     private let collection = "reviews"
 
     func submitReview(_ review: Review) async throws {
-        // Batch: write review + update user rating atomically
-        let batch = db.batch()
-
         let reviewRef = db.collection(collection).document()
-        try batch.setData(from: review, forDocument: reviewRef)
-
-        // Increment reviewCount and recalculate rating on the reviewee's doc
         let userRef = db.collection("users").document(review.revieweeId)
-        batch.updateData([
-            "reviewCount": FieldValue.increment(Int64(1))
-        ], forDocument: userRef)
 
-        try await batch.commit()
+        // Transakcja zamiast doczytywania wszystkich recenzji — średnią liczymy przyrostowo
+        // z aktualnego rating/reviewCount, więc koszt jest stały niezależnie od liczby recenzji
+        try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
+            db.runTransaction({ transaction, errorPointer in
+                let userSnapshot: DocumentSnapshot
+                do {
+                    userSnapshot = try transaction.getDocument(userRef)
+                } catch let error as NSError {
+                    errorPointer?.pointee = error
+                    return nil
+                }
 
-        // Recalculate average rating separately (batch can't read + write atomically without transaction)
-        try await recalculateRating(for: review.revieweeId)
+                let currentRating = userSnapshot.get("rating") as? Double ?? 0
+                let currentCount = userSnapshot.get("reviewCount") as? Int ?? 0
+                let newCount = currentCount + 1
+                let newRating = (currentRating * Double(currentCount) + Double(review.rating)) / Double(newCount)
+
+                do {
+                    try transaction.setData(from: review, forDocument: reviewRef)
+                } catch let error as NSError {
+                    errorPointer?.pointee = error
+                    return nil
+                }
+                transaction.updateData([
+                    "reviewCount": newCount,
+                    "rating": newRating
+                ], forDocument: userRef)
+                return nil
+            }) { _, error in
+                if let error {
+                    cont.resume(throwing: error)
+                } else {
+                    cont.resume()
+                }
+            }
+        }
     }
 
     func fetchReviews(for userId: String) async throws -> [Review] {
@@ -44,15 +67,5 @@ final class NEIReviewService {
             .whereField("reviewerId", isEqualTo: reviewerId)
             .getDocuments()
         return !snapshot.isEmpty
-    }
-
-    private func recalculateRating(for userId: String) async throws {
-        let snapshot = try await db.collection(collection)
-            .whereField("revieweeId", isEqualTo: userId)
-            .getDocuments()
-        let ratings = snapshot.documents.compactMap { try? $0.data(as: Review.self) }.map { Double($0.rating) }
-        guard !ratings.isEmpty else { return }
-        let avg = ratings.reduce(0, +) / Double(ratings.count)
-        try await db.collection("users").document(userId).updateData(["rating": avg])
     }
 }

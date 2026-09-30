@@ -19,6 +19,14 @@ struct NEIProfileView: View {
             }
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.inline)
+            .alert("Error", isPresented: Binding(
+                get: { vm.errorMessage != nil },
+                set: { if !$0 { vm.errorMessage = nil } }
+            )) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(vm.errorMessage ?? "")
+            }
             .task { await vm.load(userId: uid) }
         }
     }
@@ -72,6 +80,10 @@ struct NEIProfileView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
+                }
+
+                if let user = vm.user {
+                    NEITrustBadgesView(badges: NEITrustBadge.badges(for: user, postCount: vm.offers.count))
                 }
 
                 Divider()
@@ -146,11 +158,30 @@ struct NEIProfileView: View {
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.vertical, 12)
             } else {
-                ForEach(Array(vm.reviews.enumerated()), id: \.element.id) { index, review in
+                ForEach(Array(vm.reviews.prefix(3).enumerated()), id: \.element.id) { index, review in
                     if index > 0 {
                         Divider()
                     }
                     ReviewRow(review: review)
+                }
+                if vm.reviews.count > 3 {
+                    Divider()
+                    NavigationLink {
+                        NEIAllReviewsView(reviews: vm.reviews)
+                    } label: {
+                        HStack {
+                            Text("See All \(vm.reviews.count) Reviews")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundStyle(Color.neiGreen)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }
@@ -259,26 +290,28 @@ struct ReviewRow: View {
     let review: Review
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
+        HStack(alignment: .top, spacing: 12) {
+            NEIAvatarView(url: nil, name: review.reviewerName, size: 36, base64: nil)
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text(review.reviewerName)
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                    Spacer()
+                    Text(review.createdAt, style: .relative)
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
                 NEIRatingView(rating: Double(review.rating), reviewCount: 0, starSize: 12, showNoReviewsText: false)
-                Spacer()
-                Text(review.createdAt, style: .date)
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-            }
-
-            Text(review.reviewerName)
-                .font(.caption)
-                .fontWeight(.semibold)
-                .foregroundStyle(.secondary)
-
-            if let comment = review.comment, !comment.isEmpty {
-                Text(comment)
-                    .font(.subheadline)
-                    .foregroundStyle(.primary)
+                if let comment = review.comment, !comment.isEmpty {
+                    Text(comment)
+                        .font(.subheadline)
+                        .foregroundStyle(.primary)
+                        .lineLimit(4)
+                }
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 6)
     }
 }

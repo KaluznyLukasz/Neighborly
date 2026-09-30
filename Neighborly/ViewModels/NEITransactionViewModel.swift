@@ -8,18 +8,29 @@ import Foundation
 @MainActor
 @Observable
 final class NEITransactionViewModel {
-    var inbox: [Transaction] = []
+    var inbox: [Transaction] = [] {
+        didSet { pendingInboxCount = inbox.filter { $0.status == .pending }.count }
+    }
     var myRequests: [Transaction] = []
     var isLoading = false
     var errorMessage: String?
+    private(set) var pendingInboxCount = 0
 
     private let transactionService = NEITransactionService()
+    // Przypomnienia synchronizujemy dopiero, gdy znamy obie listy — inaczej częściowy stan
+    // skasowałby przypomnienia drugiej roli
+    private var userId: String?
+    private var hasLoadedInbox = false
+    private var hasLoadedRequests = false
 
     func loadInbox(ownerId: String) async {
         isLoading = true
         errorMessage = nil
         do {
             inbox = try await transactionService.fetchInbox(ownerId: ownerId)
+            userId = ownerId
+            hasLoadedInbox = true
+            await syncReminders()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -31,6 +42,9 @@ final class NEITransactionViewModel {
         errorMessage = nil
         do {
             myRequests = try await transactionService.fetchMyRequests(requesterId: requesterId)
+            userId = requesterId
+            hasLoadedRequests = true
+            await syncReminders()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -51,6 +65,26 @@ final class NEITransactionViewModel {
 
     func cancel(transaction: Transaction) async {
         await updateStatus(transaction: transaction, status: .cancelled)
+    }
+
+    // dueDate == nil czyści termin. Przy ustawianiu prosimy o zgodę na powiadomienia
+    func setDueDate(transaction: Transaction, dueDate: Date?) async {
+        guard let id = transaction.id else { return }
+        errorMessage = nil
+        do {
+            try await transactionService.setDueDate(transactionId: id, dueDate: dueDate)
+            if dueDate != nil { _ = await NEIReminderService.requestAuthorization() }
+            if let i = inbox.firstIndex(where: { $0.id == id }) { inbox[i].dueDate = dueDate }
+            if let i = myRequests.firstIndex(where: { $0.id == id }) { myRequests[i].dueDate = dueDate }
+            await syncReminders()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func syncReminders() async {
+        guard hasLoadedInbox, hasLoadedRequests, let userId else { return }
+        await NEIReminderService.sync(transactions: inbox + myRequests, userId: userId)
     }
 
     func delete(transaction: Transaction) async {
@@ -77,6 +111,7 @@ final class NEITransactionViewModel {
         do {
             try await transactionService.updateStatus(transactionId: id, status: status)
             update(id: id, status: status)
+            await syncReminders()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -89,9 +124,5 @@ final class NEITransactionViewModel {
         if let i = myRequests.firstIndex(where: { $0.id == id }) {
             myRequests[i].status = status
         }
-    }
-
-    var pendingInboxCount: Int {
-        inbox.filter { $0.status == .pending }.count
     }
 }

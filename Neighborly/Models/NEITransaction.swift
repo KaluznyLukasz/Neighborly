@@ -45,6 +45,13 @@ struct Transaction: Identifiable, Codable {
     var ownerId: String
     var status: TransactionStatus
     var message: String?
+    // Termin zwrotu ustawia właściciel po zaakceptowaniu; nil = bez terminu
+    var dueDate: Date?
     var createdAt: Date
     var updatedAt: Date
+
+    var isOverdue: Bool {
+        guard status == .accepted, let dueDate else { return false }
+        return dueDate < Calendar.current.startOfDay(for: Date())
+    }
 }

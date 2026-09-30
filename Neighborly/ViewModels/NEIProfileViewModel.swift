@@ -44,7 +44,9 @@ final class NEIProfileViewModel {
                 "email": email
             ], merge: true)
 
-            user = await fetchUser(userId)
+            user?.displayName = displayName
+            user?.bio = bio
+            user?.email = email
 
             let changeRequest = Auth.auth().currentUser?.createProfileChangeRequest()
             changeRequest?.displayName = displayName
@@ -72,17 +74,8 @@ final class NEIProfileViewModel {
             return
         }
         do {
-            let authUser = Auth.auth().currentUser
-            let docData: [String: Any] = [
-                "avatarBase64": base64,
-                "displayName": user?.displayName ?? authUser?.displayName ?? "",
-                "email": user?.email ?? authUser?.email ?? "",
-                "rating": user?.rating ?? 0.0,
-                "reviewCount": user?.reviewCount ?? 0,
-                "createdAt": user.map { Timestamp(date: $0.createdAt) } ?? Timestamp(date: Date())
-            ]
-            try await db.collection("users").document(userId).setData(docData, merge: true)
-            user = await fetchUser(userId)
+            try await db.collection("users").document(userId).setData(["avatarBase64": base64], merge: true)
+            user?.avatarBase64 = base64
         } catch {
             errorMessage = error.localizedDescription
         }

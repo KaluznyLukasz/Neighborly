@@ -68,6 +68,45 @@ service cloud.firestore {
       }
     }
 
+    // /alerts/{alertId} — krótkotrwałe ogłoszenia dla sąsiadów (wygasają po 48 h)
+    match /alerts/{alertId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() &&
+        request.resource.data.authorId == request.auth.uid &&
+        request.resource.data.title is string &&
+        request.resource.data.title.size() > 0 && request.resource.data.title.size() <= 80 &&
+        request.resource.data.details is string && request.resource.data.details.size() <= 500 &&
+        request.resource.data.expiresAt <= request.time + duration.value(49, 'h') &&
+        // Zdjęcie jako base64 w dokumencie — limit dokumentu to 1 MiB, zostawiamy zapas
+        (!('imageBase64' in request.resource.data) || request.resource.data.imageBase64.size() < 700000);
+      allow update: if false;
+      allow delete: if isSignedIn() && resource.data.authorId == request.auth.uid;
+
+      // /alerts/{alertId}/threads/{viewerId} — rozmowa sąsiada (viewerId) z autorem ogłoszenia
+      match /threads/{viewerId} {
+        function isThreadParticipant() {
+          return request.auth.uid == viewerId ||
+            get(/databases/$(database)/documents/alerts/$(alertId)).data.authorId == request.auth.uid;
+        }
+
+        allow read: if isSignedIn() && isThreadParticipant();
+        // Wątek zakłada sąsiad; autor może go tylko aktualizować (odpowiedź)
+        allow create: if isSignedIn() && request.auth.uid == viewerId &&
+          request.auth.uid != get(/databases/$(database)/documents/alerts/$(alertId)).data.authorId;
+        allow update: if isSignedIn() && isThreadParticipant();
+        allow delete: if false;
+
+        match /messages/{messageId} {
+          allow read: if isSignedIn() && isThreadParticipant();
+          allow create: if isSignedIn() && isThreadParticipant() &&
+            request.resource.data.senderId == request.auth.uid &&
+            request.resource.data.text is string &&
+            request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 1000;
+          allow update, delete: if false;
+        }
+      }
+    }
+
     // /reviews/{reviewId}
     match /reviews/{reviewId} {
       allow read: if isSignedIn();

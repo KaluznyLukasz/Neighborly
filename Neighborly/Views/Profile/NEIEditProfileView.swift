@@ -91,6 +91,8 @@ struct NEIEditProfileView: View {
                 }
             }
         }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
     }
 
     private var avatarSection: some View {

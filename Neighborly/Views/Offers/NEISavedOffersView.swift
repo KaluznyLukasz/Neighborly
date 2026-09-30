@@ -168,8 +168,7 @@ private struct SavedOfferCard: View {
     @ViewBuilder
     private var thumbnail: some View {
         if let base64 = offer.imageBase64,
-           let data = Data(base64Encoded: base64),
-           let uiImage = UIImage(data: data) {
+           let uiImage = NEIBase64ImageCache.decodedImage(base64: base64) {
             Image(uiImage: uiImage)
                 .resizable()
                 .scaledToFill()

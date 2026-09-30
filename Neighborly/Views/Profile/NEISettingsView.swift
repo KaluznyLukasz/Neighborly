@@ -19,7 +19,7 @@ struct NEISettingsView: View {
     @State private var searchRadiusKm: Double = NEIUserPreferences.searchRadiusKm
     @AppStorage("appearanceMode") private var appearanceMode: String = "system"
 
-    private let radiusOptions: [Double] = [5, 10, 25, 50, 100]
+    private let radiusOptions: [Double] = [1, 3, 5, 10, 25, 50, 100, NEIUserPreferences.unlimitedRadiusKm]
 
     var body: some View {
         ScrollView {
@@ -110,11 +110,13 @@ struct NEISettingsView: View {
             ) {
                 Picker("", selection: $searchRadiusKm) {
                     ForEach(radiusOptions, id: \.self) { km in
-                        Text("\(Int(km)) km").tag(km)
+                        Text(km.isInfinite ? "Any distance" : "\(Int(km)) km").tag(km)
                     }
                 }
                 .pickerStyle(.menu)
                 .tint(.secondary)
+                .accessibilityLabel("Search Radius")
+                .accessibilityValue(searchRadiusKm.isInfinite ? "Any distance" : "\(Int(searchRadiusKm)) kilometers")
             }
 
             Divider().padding(.leading, 52)

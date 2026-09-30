@@ -114,6 +114,8 @@ struct NEICreateOfferView: View {
                 }
             }
         }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
     }
 
     private var addressField: some View {

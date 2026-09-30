@@ -79,13 +79,7 @@ final class NEIFavoriteViewModel {
         do {
             let ids = try await favoriteService.fetchFavoriteOfferIds(userId: userId)
             favoriteOfferIds = Set(ids)
-            var offers: [Offer] = []
-            for id in ids {
-                if let offer = try? await offerService.fetchOffer(id: id) {
-                    offers.append(offer)
-                }
-            }
-            savedOffers = offers
+            savedOffers = try await offerService.fetchOffers(ids: ids)
         } catch {
             errorMessage = error.localizedDescription
         }

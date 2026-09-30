@@ -12,6 +12,7 @@ struct NEITransactionDetailView: View {
     let vm: NEITransactionViewModel
 
     @State private var status: TransactionStatus
+    @State private var dueDate: Date?
     @State private var showReviewSheet = false
     @State private var showChatSheet = false
     @State private var showProfileSheet = false
@@ -28,6 +29,7 @@ struct NEITransactionDetailView: View {
         self.currentUserName = currentUserName
         self.vm = vm
         _status = State(initialValue: transaction.status)
+        _dueDate = State(initialValue: transaction.dueDate)
     }
 
     var body: some View {
@@ -36,6 +38,10 @@ struct NEITransactionDetailView: View {
                 VStack(alignment: .leading, spacing: 20) {
                     statusCard
                     detailCard
+
+                    if status == .accepted {
+                        returnCard
+                    }
 
                     if let message = transaction.message {
                         messageCard(message)
@@ -102,6 +108,8 @@ struct NEITransactionDetailView: View {
                 }
             }
         }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
     }
 
     private var statusCard: some View {
@@ -148,6 +156,63 @@ struct NEITransactionDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(.systemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    private var isOverdue: Bool {
+        guard status == .accepted, let dueDate else { return false }
+        return dueDate < Calendar.current.startOfDay(for: Date())
+    }
+
+    private var returnCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if isOwner {
+                Toggle("Ask for return", isOn: Binding(
+                    get: { dueDate != nil },
+                    set: { on in
+                        let new = on ? Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: Date())) : nil
+                        setDueDate(new)
+                    }
+                ))
+                if let dueDate {
+                    DatePicker(
+                        "Return by",
+                        selection: Binding(get: { dueDate }, set: { setDueDate(Calendar.current.startOfDay(for: $0)) }),
+                        in: Calendar.current.startOfDay(for: Date())...,
+                        displayedComponents: .date
+                    )
+                }
+                Text("Both of you get a reminder the day before and on the day.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else if let dueDate {
+                Label {
+                    Text("Return by \(dueDate, format: .dateTime.weekday(.wide).day().month(.wide))")
+                } icon: {
+                    Image(systemName: "calendar.badge.clock")
+                }
+                .font(.subheadline)
+            } else {
+                Label("No return date set", systemImage: "calendar")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            if isOverdue {
+                Label("Overdue", systemImage: "exclamationmark.triangle.fill")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.red)
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(.systemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func setDueDate(_ new: Date?) {
+        dueDate = new
+        Task { await vm.setDueDate(transaction: transaction, dueDate: new) }
     }
 
     private func messageCard(_ msg: String) -> some View {

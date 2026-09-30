@@ -51,6 +51,14 @@ struct NEIUserProfileView: View {
         } message: {
             Text("You'll be able to see their offers again.")
         }
+        .alert("Error", isPresented: Binding(
+            get: { vm.errorMessage != nil },
+            set: { if !$0 { vm.errorMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(vm.errorMessage ?? "")
+        }
     }
 
     @ViewBuilder
@@ -104,6 +112,10 @@ struct NEIUserProfileView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
+                }
+
+                if let user = vm.user {
+                    NEITrustBadgesView(badges: NEITrustBadge.badges(for: user, postCount: vm.offers.count))
                 }
 
                 Divider()
@@ -178,11 +190,30 @@ struct NEIUserProfileView: View {
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.vertical, 12)
             } else {
-                ForEach(Array(vm.reviews.enumerated()), id: \.element.id) { index, review in
+                ForEach(Array(vm.reviews.prefix(3).enumerated()), id: \.element.id) { index, review in
                     if index > 0 {
                         Divider()
                     }
                     ReviewRow(review: review)
+                }
+                if vm.reviews.count > 3 {
+                    Divider()
+                    NavigationLink {
+                        NEIAllReviewsView(reviews: vm.reviews)
+                    } label: {
+                        HStack {
+                            Text("See All \(vm.reviews.count) Reviews")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundStyle(Color.neiGreen)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }
