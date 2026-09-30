@@ -6,9 +6,27 @@
 import SwiftUI
 
 struct NEIChatView: View {
-    let transaction: Transaction
+    let title: String
+    let conversationPath: String
     let currentUserId: String
     let currentUserName: String
+    // Wywoływane po udanym wysłaniu — np. odświeżenie wątku ogłoszenia
+    var onSent: ((String) async -> Void)?
+
+    init(transaction: Transaction, currentUserId: String, currentUserName: String) {
+        self.title = transaction.offerTitle
+        self.conversationPath = NEIMessageService.path(transactionId: transaction.id ?? "")
+        self.currentUserId = currentUserId
+        self.currentUserName = currentUserName
+    }
+
+    init(title: String, conversationPath: String, currentUserId: String, currentUserName: String, onSent: ((String) async -> Void)? = nil) {
+        self.title = title
+        self.conversationPath = conversationPath
+        self.currentUserId = currentUserId
+        self.currentUserName = currentUserName
+        self.onSent = onSent
+    }
 
     @State private var vm = NEIMessageViewModel()
     @State private var inputText = ""
@@ -57,12 +75,13 @@ struct NEIChatView: View {
                     Task {
                         let text = inputText
                         inputText = ""
-                        await vm.send(
-                            transactionId: transaction.id ?? "",
+                        let sent = await vm.send(
+                            path: conversationPath,
                             senderId: currentUserId,
                             senderName: currentUserName,
                             text: text
                         )
+                        if sent { await onSent?(text) }
                     }
                 } label: {
                     Image(systemName: "arrow.up.circle.fill")
@@ -76,10 +95,10 @@ struct NEIChatView: View {
             .background(Color(.systemBackground))
         }
         .background(Color(.systemGroupedBackground))
-        .navigationTitle(transaction.offerTitle)
+        .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .task {
-            vm.startListening(transactionId: transaction.id ?? "")
+            vm.startListening(path: conversationPath)
         }
         .onDisappear {
             vm.stopListening()
