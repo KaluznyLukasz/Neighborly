@@ -5,6 +5,7 @@ learning under `docs/learnings/`. Add with `/nei-learn`; promote recurring rules
 `CLAUDE.md` with `/nei-distill`.
 
 <!-- newest first -->
+- [form-destructive-button-icon-stays-blue](form-destructive-button-icon-stays-blue.md) — destructive Button with systemImage in a Form: title red, icon blue; add .foregroundStyle(.red)
 - [section-per-row-breaks-ondelete](section-per-row-breaks-ondelete.md) — one Section per List row kills ForEach.onDelete; use per-row .swipeActions
 - [swiftui-views-need-explicit-firebaseauth-import](swiftui-views-need-explicit-firebaseauth-import.md) — new views reading User.uid/displayName need `import FirebaseAuth` (MemberImportVisibility); SourceKit lies, build tells
 - [firebase-cli-via-npx-no-global-install](firebase-cli-via-npx-no-global-install.md) — no global firebase CLI here, use npx firebase-tools@latest, cached login usually exists

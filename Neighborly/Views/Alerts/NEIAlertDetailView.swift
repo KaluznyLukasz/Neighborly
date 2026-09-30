@@ -40,11 +40,11 @@ struct NEIAlertDetailView: View {
                 Section {
                     Image(uiImage: photo)
                         .resizable()
-                        .scaledToFill()
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 240)
-                        .clipped()
+                        .scaledToFit()
+                        .frame(maxWidth: .infinity, maxHeight: 400)
+                        .background(.fill.tertiary)
                         .listRowInsets(EdgeInsets())
+                        .accessibilityIgnoresInvertColors()
                         .accessibilityLabel("Alert photo")
                 }
             }
