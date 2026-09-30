@@ -57,6 +57,8 @@ struct NEIMapView: View {
     @State private var mapVM = NEIMapViewModel()
     @State private var selectedOffer: Offer?
     @State private var showCreateOffer = false
+    @State private var alertVM = NEIAlertViewModel()
+    @State private var showAlerts = false
     @State private var mapPosition: MapCameraPosition = .region(
         MKCoordinateRegion(center: defaultCenter, span: defaultSpan)
     )
@@ -85,6 +87,33 @@ struct NEIMapView: View {
         withAnimation(.smooth(duration: 0.6)) {
             mapPosition = .region(MKCoordinateRegion(center: center, span: span))
         }
+    }
+
+    private var alertsButton: some View {
+        Button {
+            showAlerts = true
+        } label: {
+            Image(systemName: "bell.fill")
+                .font(.title3)
+                .foregroundStyle(.primary)
+                .frame(width: 44, height: 44)
+                .glassEffect(.regular.interactive(), in: .circle)
+                .overlay(alignment: .topTrailing) {
+                    if !alertVM.alerts.isEmpty {
+                        Text("\(alertVM.alerts.count)")
+                            .font(.caption2.bold())
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 5)
+                            .frame(minWidth: 18, minHeight: 18)
+                            .background(Color.neiRed, in: Capsule())
+                            .offset(x: 4, y: -4)
+                    }
+                }
+        }
+        .padding(.leading, 16)
+        .padding(.top, 8)
+        .accessibilityLabel("Neighborhood alerts")
+        .accessibilityValue(alertVM.alerts.isEmpty ? "None" : "\(alertVM.alerts.count) active")
     }
 
     var body: some View {
@@ -176,6 +205,14 @@ struct NEIMapView: View {
             .padding(.bottom, 16)
             .padding(.top, 8)
             .background(.clear)
+        }
+        .overlay(alignment: .topLeading) { alertsButton }
+        .sheet(isPresented: $showAlerts) {
+            NEIAlertsView(vm: alertVM)
+        }
+        .task(id: locationManager.userCoordinate) {
+            guard let coord = locationManager.userCoordinate else { return }
+            await alertVM.load(near: coord, currentUserId: authService.currentUser?.uid ?? "")
         }
         .onAppear {
             locationManager.requestPermission()
