@@ -162,27 +162,35 @@ struct NEIUserProfileView: View {
         .frame(maxWidth: .infinity)
     }
 
+    @ViewBuilder
     private var postsSection: some View {
-        sectionCard(title: "Posts") {
-            if vm.offers.isEmpty {
+        if vm.offers.isEmpty {
+            NEISectionCard(title: "Posts") {
                 Text("No posts yet")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.vertical, 12)
-            } else {
-                ForEach(Array(vm.offers.enumerated()), id: \.element.id) { index, offer in
-                    if index > 0 {
-                        Divider().padding(.leading, 52)
+            }
+        } else {
+            // Każdy post jako osobna karta — ten sam wygląd co w Profile → My Posts.
+            VStack(alignment: .leading, spacing: 0) {
+                NEISectionHeader(title: "Posts")
+                VStack(spacing: 10) {
+                    ForEach(vm.offers) { offer in
+                        NEIPostRow(offer: offer)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .neiCardBackground()
                     }
-                    OfferRow(offer: offer)
                 }
             }
         }
     }
 
     private var reviewsSection: some View {
-        sectionCard(title: "Reviews") {
+        NEISectionCard(title: "Reviews") {
             if vm.reviews.isEmpty {
                 Text("No reviews yet")
                     .font(.subheadline)
@@ -220,7 +228,7 @@ struct NEIUserProfileView: View {
     }
 
     private var blockSection: some View {
-        sectionCard(title: "Trust & Safety") {
+        NEISectionCard(title: "Trust & Safety") {
             Button {
                 if blockVM.isBlocked(userId) {
                     showUnblockAlert = true
@@ -247,30 +255,6 @@ struct NEIUserProfileView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-        }
-    }
-
-    @ViewBuilder
-    private func sectionCard<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text(title)
-                .font(.footnote)
-                .fontWeight(.semibold)
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
-                .padding(.bottom, 8)
-                .padding(.leading, 4)
-
-            VStack(alignment: .leading, spacing: 10) {
-                content()
-            }
-            .padding(16)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color(.secondarySystemGroupedBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 14))
-            .overlay(RoundedRectangle(cornerRadius: 14)
-                .strokeBorder(Color(.separator).opacity(0.6), lineWidth: 0.5))
-            .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
         }
     }
 }
