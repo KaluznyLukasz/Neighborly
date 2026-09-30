@@ -132,15 +132,12 @@ struct NEITransactionListView: View {
     }
 
     private func loadAll() async {
+        isLoadingOffers = true
         async let inbox: () = vm.loadInbox(ownerId: uid)
         async let requests: () = vm.loadMyRequests(requesterId: uid)
-        _ = await (inbox, requests)
-        await loadMyOffers()
-    }
-
-    private func loadMyOffers() async {
-        isLoadingOffers = true
-        myOffers = (try? await offerService.fetchOffersByOwner(ownerId: uid)) ?? []
+        async let offers = (try? await offerService.fetchOffersByOwner(ownerId: uid)) ?? []
+        let (_, _, fetchedOffers) = await (inbox, requests, offers)
+        myOffers = fetchedOffers
         isLoadingOffers = false
     }
 

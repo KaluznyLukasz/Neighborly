@@ -41,6 +41,7 @@ struct NEISplashView: View {
 struct ContentView: View {
     @EnvironmentObject var authService: NEIAuthService
     @State private var transactionVM = NEITransactionViewModel()
+    @State private var locationManager = LocationManager()
     @State private var showSplash = true
     @AppStorage("appearanceMode") private var appearanceMode: String = "system"
 
@@ -80,6 +81,7 @@ struct ContentView: View {
                             Label("Search", systemImage: "magnifyingglass")
                         }
                 }
+                .environment(locationManager)
                 .task {
                     if let uid = authService.currentUser?.uid {
                         await transactionVM.loadInbox(ownerId: uid)
@@ -99,7 +101,7 @@ struct ContentView: View {
                 try? await Task.sleep(for: .milliseconds(50))
             }
             let elapsed = Date().timeIntervalSince(start)
-            let remaining = 1.8 - elapsed
+            let remaining = 0.6 - elapsed
             if remaining > 0 { try? await Task.sleep(for: .seconds(remaining)) }
             withAnimation { showSplash = false }
         }

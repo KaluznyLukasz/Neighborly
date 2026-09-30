@@ -54,13 +54,24 @@ final class NEIBlockService {
 
     func fetchBlockedUsers(userId: String) async throws -> [NEIUser] {
         let ids = try await fetchBlockedUserIds(userId: userId)
-        var users: [NEIUser] = []
-        for id in ids {
-            let doc = try? await db.collection("users").document(id).getDocument()
-            if let user = try? doc?.data(as: NEIUser.self) {
-                users.append(user)
-            }
+        guard !ids.isEmpty else { return [] }
+        let chunks = stride(from: 0, to: ids.count, by: 30).map {
+            Array(ids[$0..<min($0 + 30, ids.count)])
         }
-        return users
+        return try await withThrowingTaskGroup(of: [NEIUser].self) { group in
+            for chunk in chunks {
+                group.addTask {
+                    let snapshot = try await self.db.collection("users")
+                        .whereField(FieldPath.documentID(), in: chunk)
+                        .getDocuments()
+                    return snapshot.documents.compactMap { try? $0.data(as: NEIUser.self) }
+                }
+            }
+            var results: [NEIUser] = []
+            for try await chunkResult in group {
+                results.append(contentsOf: chunkResult)
+            }
+            return results
+        }
     }
 }

@@ -16,6 +16,7 @@ final class NEIMessageViewModel {
     private var listeningTask: Task<Void, Never>?
 
     func startListening(transactionId: String) {
+        stopListening()
         listeningTask = Task {
             for await msgs in service.messageStream(transactionId: transactionId) {
                 messages = msgs

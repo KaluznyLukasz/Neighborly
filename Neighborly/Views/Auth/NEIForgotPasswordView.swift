@@ -63,5 +63,7 @@ struct NEIForgotPasswordView: View {
                 }
             }
         }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
     }
 }

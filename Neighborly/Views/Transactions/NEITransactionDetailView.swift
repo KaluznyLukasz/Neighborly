@@ -102,6 +102,8 @@ struct NEITransactionDetailView: View {
                 }
             }
         }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
     }
 
     private var statusCard: some View {

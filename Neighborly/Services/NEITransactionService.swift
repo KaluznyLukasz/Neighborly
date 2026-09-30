@@ -28,19 +28,17 @@ final class NEITransactionService {
     func fetchInbox(ownerId: String) async throws -> [Transaction] {
         let snapshot = try await db.collection(collection)
             .whereField("ownerId", isEqualTo: ownerId)
+            .order(by: "createdAt", descending: true)
             .getDocuments()
-        return snapshot.documents
-            .compactMap { try? $0.data(as: Transaction.self) }
-            .sorted { $0.createdAt > $1.createdAt }
+        return snapshot.documents.compactMap { try? $0.data(as: Transaction.self) }
     }
 
     func fetchMyRequests(requesterId: String) async throws -> [Transaction] {
         let snapshot = try await db.collection(collection)
             .whereField("requesterId", isEqualTo: requesterId)
+            .order(by: "createdAt", descending: true)
             .getDocuments()
-        return snapshot.documents
-            .compactMap { try? $0.data(as: Transaction.self) }
-            .sorted { $0.createdAt > $1.createdAt }
+        return snapshot.documents.compactMap { try? $0.data(as: Transaction.self) }
     }
 
     func updateStatus(transactionId: String, status: TransactionStatus) async throws {

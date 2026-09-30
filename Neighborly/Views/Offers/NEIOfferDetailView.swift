@@ -4,7 +4,6 @@
 //
 
 import SwiftUI
-import FirebaseFirestore
 
 struct NEIOfferDetailView: View {
     let offer: Offer
@@ -127,8 +126,7 @@ struct NEIOfferDetailView: View {
     @ViewBuilder
     private var headerImage: some View {
         if let base64 = offer.imageBase64,
-           let data = Data(base64Encoded: base64),
-           let uiImage = UIImage(data: data) {
+           let uiImage = NEIBase64ImageCache.decodedImage(base64: base64) {
             Image(uiImage: uiImage)
                 .resizable()
                 .scaledToFill()
@@ -331,9 +329,7 @@ struct NEIOfferDetailView: View {
     }
 
     private func loadOwner() async {
-        let doc = try? await Firestore.firestore()
-            .collection("users").document(offer.ownerId).getDocument()
-        ownerUser = try? doc?.data(as: NEIUser.self)
+        ownerUser = await NEIUserCache.shared.user(id: offer.ownerId)
     }
 }
 

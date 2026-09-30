@@ -53,7 +53,7 @@ final class LocationManager: NSObject, CLLocationManagerDelegate {
 
 struct NEIMapView: View {
     @EnvironmentObject var authService: NEIAuthService
-    @State private var locationManager = LocationManager()
+    @Environment(LocationManager.self) private var locationManager
     @State private var mapVM = NEIMapViewModel()
     @State private var selectedOffer: Offer?
     @State private var showCreateOffer = false
@@ -62,6 +62,8 @@ struct NEIMapView: View {
     )
     @State private var visibleSpan: MKCoordinateSpan = defaultSpan
     @State private var expandedStackId: String?
+    @State private var groupedItems: [NEIMapItem] = []
+    @State private var lastLoadedCenter: CLLocationCoordinate2D?
 
     // Pokaż tytuły tylko po dość mocnym przybliżeniu — inaczej etykiety się zlewają
     private var showLabels: Bool { visibleSpan.longitudeDelta < 0.02 }
@@ -89,7 +91,7 @@ struct NEIMapView: View {
         Map(position: $mapPosition) {
             UserAnnotation()
 
-            ForEach(neiGroupOffers(mapVM.offers, span: visibleSpan)) { item in
+            ForEach(groupedItems) { item in
                 switch item {
                 case .offer(let offer):
                     Annotation("", coordinate: offer.coordinate) {
@@ -130,17 +132,22 @@ struct NEIMapView: View {
         .onMapCameraChange(frequency: .onEnd) { ctx in
             let new = ctx.region.span
             withAnimation(.smooth(duration: 0.5)) {
-                let currentStackIds = Set(neiGroupOffers(mapVM.offers, span: new).compactMap { item -> String? in
+                visibleSpan = new
+                let regrouped = neiGroupOffers(mapVM.offers, span: new)
+                groupedItems = regrouped
+                let currentStackIds = Set(regrouped.compactMap { item -> String? in
                     if case .stack(let id, _, _) = item { return id }
                     return nil
                 })
-                visibleSpan = new
                 if let expanded = expandedStackId, !currentStackIds.contains(expanded) {
                     expandedStackId = nil
                 }
             }
         }
-        .onChange(of: mapVM.offers.count) { _, _ in expandedStackId = nil }
+        .onChange(of: mapVM.offers.count, initial: true) { _, _ in
+            expandedStackId = nil
+            groupedItems = neiGroupOffers(mapVM.offers, span: visibleSpan)
+        }
         .mapControls {
             MapUserLocationButton()
             MapCompass()
@@ -173,11 +180,21 @@ struct NEIMapView: View {
         .onAppear {
             locationManager.requestPermission()
             let coord = locationManager.userCoordinate ?? defaultCenter
+            lastLoadedCenter = coord
             Task { await mapVM.loadOffers(near: coord, currentUserId: authService.currentUser?.uid ?? "") }
         }
         .onChange(of: locationManager.userCoordinate) { _, coord in
             guard let coord else { return }
             mapPosition = .region(MKCoordinateRegion(center: coord, span: defaultSpan))
+            // Pomiń przeładowanie, gdy nowa lokalizacja mieści się w promieniu ostatniego zapytania —
+            // wynik i tak by się nie zmienił, a to oszczędza zbędny round-trip przy każdym uruchomieniu
+            let radiusKm = NEIUserPreferences.searchRadiusKm
+            if let last = lastLoadedCenter, !radiusKm.isInfinite {
+                let distanceKm = CLLocation(latitude: last.latitude, longitude: last.longitude)
+                    .distance(from: CLLocation(latitude: coord.latitude, longitude: coord.longitude)) / 1000
+                if distanceKm < radiusKm { return }
+            }
+            lastLoadedCenter = coord
             Task { await mapVM.loadOffers(near: coord, currentUserId: authService.currentUser?.uid ?? "") }
         }
         .sheet(item: $selectedOffer) { offer in
@@ -190,12 +207,19 @@ struct NEIMapView: View {
                         Task { await mapVM.deleteOffer(id: id) }
                     }
                 },
-                onActiveChanged: { _ in
-                    let coord = locationManager.userCoordinate ?? defaultCenter
-                    Task { await mapVM.loadOffers(near: coord, currentUserId: authService.currentUser?.uid ?? "") }
+                onActiveChanged: { newValue in
+                    if let id = offer.id { mapVM.setOfferActive(id: id, isActive: newValue) }
                 }
             )
             .id(offer.id)
+        }
+        .alert("Error", isPresented: Binding(
+            get: { mapVM.errorMessage != nil },
+            set: { if !$0 { mapVM.errorMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(mapVM.errorMessage ?? "")
         }
         .sheet(isPresented: $showCreateOffer) {
             if let uid = authService.currentUser?.uid {
@@ -462,4 +486,5 @@ struct NEIStackFlower: View {
 #Preview {
     NEIMapView()
         .environmentObject(NEIAuthService())
+        .environment(LocationManager())
 }

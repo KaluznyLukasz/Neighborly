@@ -10,7 +10,7 @@ import FirebaseAuth
 struct NEISearchView: View {
     @EnvironmentObject var authService: NEIAuthService
     @State private var vm = NEISearchViewModel()
-    @State private var locationManager = LocationManager()
+    @Environment(LocationManager.self) private var locationManager
     @State private var selectedOffer: Offer?
 
     private let searchDefaultCenter = CLLocationCoordinate2D(latitude: 52.2297, longitude: 21.0122)
@@ -46,8 +46,8 @@ struct NEISearchView: View {
                 currentUserId: authService.currentUser?.uid ?? "",
                 currentUserName: authService.currentUser?.displayName ?? "User",
                 onDelete: nil,
-                onActiveChanged: { _ in
-                    Task { await vm.loadOffers(near: locationManager.userCoordinate ?? searchDefaultCenter, currentUserId: authService.currentUser?.uid ?? "") }
+                onActiveChanged: { newValue in
+                    if let id = offer.id { vm.setOfferActive(id: id, isActive: newValue) }
                 }
             )
             .id(offer.id)
@@ -153,4 +153,5 @@ private enum SearchDestination: Hashable {
 #Preview {
     NEISearchView()
         .environmentObject(NEIAuthService())
+        .environment(LocationManager())
 }

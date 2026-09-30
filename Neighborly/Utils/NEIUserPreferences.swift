@@ -7,6 +7,7 @@ import Foundation
 
 enum NEIUserPreferences {
     private static let searchRadiusKey = "searchRadiusKm"
+    static let unlimitedRadiusKm = Double.infinity
 
     static var searchRadiusKm: Double {
         get {

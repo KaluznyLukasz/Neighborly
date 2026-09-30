@@ -17,6 +17,13 @@ final class NEISearchViewModel {
     private let offerService = NEIOfferService()
     private let blockService = NEIBlockService()
 
+    // Lista zawiera tylko aktywne oferty (patrz fetchOffers) — po dezaktywacji usuwamy
+    // ofertę lokalnie zamiast pełnego przeładowania
+    func setOfferActive(id: String, isActive: Bool) {
+        guard !isActive else { return }
+        offers.removeAll { $0.id == id }
+    }
+
     var filteredOffers: [Offer] {
         guard !searchText.isEmpty else { return [] }
         return offers.filter { offer in
@@ -29,9 +36,10 @@ final class NEISearchViewModel {
         isLoading = true
         errorMessage = nil
         do {
-            let fetched = try await offerService.fetchOffers(near: coordinate, radiusKm: NEIUserPreferences.searchRadiusKm)
-            let blockedIds = (try? await blockService.fetchBlockedUserIds(userId: currentUserId)) ?? []
-            offers = fetched.filter { !blockedIds.contains($0.ownerId) }
+            async let fetched = offerService.fetchOffers(near: coordinate, radiusKm: NEIUserPreferences.searchRadiusKm)
+            async let blockedIds = (try? await blockService.fetchBlockedUserIds(userId: currentUserId)) ?? []
+            let (result, blocked) = try await (fetched, blockedIds)
+            offers = result.filter { !blocked.contains($0.ownerId) }
         } catch {
             errorMessage = error.localizedDescription
         }

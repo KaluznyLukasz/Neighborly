@@ -71,6 +71,8 @@ struct NEIReviewView: View {
                 }
             }
         }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
     }
 
     private var presetChips: some View {

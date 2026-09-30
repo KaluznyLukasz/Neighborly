@@ -8,10 +8,13 @@ import Foundation
 @MainActor
 @Observable
 final class NEITransactionViewModel {
-    var inbox: [Transaction] = []
+    var inbox: [Transaction] = [] {
+        didSet { pendingInboxCount = inbox.filter { $0.status == .pending }.count }
+    }
     var myRequests: [Transaction] = []
     var isLoading = false
     var errorMessage: String?
+    private(set) var pendingInboxCount = 0
 
     private let transactionService = NEITransactionService()
 
@@ -89,9 +92,5 @@ final class NEITransactionViewModel {
         if let i = myRequests.firstIndex(where: { $0.id == id }) {
             myRequests[i].status = status
         }
-    }
-
-    var pendingInboxCount: Int {
-        inbox.filter { $0.status == .pending }.count
     }
 }

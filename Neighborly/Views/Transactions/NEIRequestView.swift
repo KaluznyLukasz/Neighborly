@@ -22,23 +22,33 @@ struct NEIRequestView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
+                    sectionLabel("Offer")
                     offerSummary
 
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Message to requester (optional)")
-                            .font(.caption)
-                            .fontWeight(.medium)
-                            .foregroundStyle(.secondary)
+                        sectionLabel("Message to the owner (optional)")
 
-                        TextEditor(text: $message)
-                            .frame(minHeight: 100)
-                            .padding(10)
-                            .background(Color(.systemBackground))
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .stroke(Color(.systemGray4), lineWidth: 1)
-                            )
+                        ZStack(alignment: .topLeading) {
+                            TextEditor(text: $message)
+                                .frame(minHeight: 100)
+                                .scrollContentBackground(.hidden)
+
+                            if message.isEmpty {
+                                Text("Let them know how you'd like to help…")
+                                    .foregroundStyle(.tertiary)
+                                    .padding(.top, 8)
+                                    .padding(.leading, 5)
+                                    .allowsHitTesting(false)
+                            }
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 12)
+                        .background(Color(.systemBackground))
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(Color(.systemGray4), lineWidth: 1)
+                        )
                     }
 
                     if let error = errorMessage {
@@ -47,12 +57,13 @@ struct NEIRequestView: View {
                             .foregroundStyle(.red)
                     }
 
-                    NEIPrimaryButton("Offer to Help", isLoading: isLoading) {
+                    NEIPrimaryButton("Send Request", isLoading: isLoading) {
                         Task { await sendRequest() }
                     }
                 }
                 .padding(24)
             }
+            .scrollDismissesKeyboard(.interactively)
             .background(Color(.systemGroupedBackground).ignoresSafeArea())
             .navigationTitle("Offer to Help")
             .navigationBarTitleDisplayMode(.inline)
@@ -62,6 +73,17 @@ struct NEIRequestView: View {
                 }
             }
         }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+    }
+
+    private func sectionLabel(_ title: String) -> some View {
+        Text(title)
+            .font(.footnote)
+            .fontWeight(.semibold)
+            .foregroundStyle(.secondary)
+            .textCase(.uppercase)
+            .padding(.leading, 4)
     }
 
     private var offerSummary: some View {
@@ -76,8 +98,12 @@ struct NEIRequestView: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.systemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(Color(.separator).opacity(0.6), lineWidth: 0.5)
+        )
     }
 
     private func sendRequest() async {
