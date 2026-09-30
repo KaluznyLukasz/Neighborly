@@ -82,6 +82,10 @@ struct NEIProfileView: View {
                     }
                 }
 
+                if let user = vm.user {
+                    NEITrustBadgesView(badges: NEITrustBadge.badges(for: user, postCount: vm.offers.count))
+                }
+
                 Divider()
                     .padding(.horizontal, 24)
                     .padding(.top, 4)
