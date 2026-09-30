@@ -130,20 +130,28 @@ struct NEIProfileView: View {
         .frame(maxWidth: .infinity)
     }
 
+    @ViewBuilder
     private var postsSection: some View {
-        NEISectionCard(title: "My Posts") {
-            if vm.offers.isEmpty {
+        if vm.offers.isEmpty {
+            NEISectionCard(title: "My Posts") {
                 Text("No posts yet")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.vertical, 12)
-            } else {
-                ForEach(Array(vm.offers.enumerated()), id: \.element.id) { index, offer in
-                    if index > 0 {
-                        Divider().padding(.leading, 52)
+            }
+        } else {
+            // Każdy post jako osobna karta — ten sam wygląd co w Activity → My Posts.
+            VStack(alignment: .leading, spacing: 0) {
+                NEISectionHeader(title: "My Posts")
+                VStack(spacing: 10) {
+                    ForEach(vm.offers) { offer in
+                        NEIPostRow(offer: offer)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .neiCardBackground()
                     }
-                    OfferRow(offer: offer)
                 }
             }
         }

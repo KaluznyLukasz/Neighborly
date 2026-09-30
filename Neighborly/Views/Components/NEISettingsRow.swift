@@ -12,24 +12,42 @@ struct NEISectionCard<Content: View>: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text(title)
-                .font(.footnote)
-                .fontWeight(.semibold)
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
-                .padding(.bottom, 8)
-                .padding(.leading, 4)
+            NEISectionHeader(title: title)
 
             VStack(alignment: .leading, spacing: 10) {
                 content()
             }
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
+            .neiCardBackground()
+        }
+    }
+}
+
+/// Nagłówek sekcji w stylu grupowanych list systemowych (footnote, wielkie litery).
+struct NEISectionHeader: View {
+    let title: String
+
+    var body: some View {
+        Text(title)
+            .font(.footnote)
+            .fontWeight(.semibold)
+            .foregroundStyle(.secondary)
+            .textCase(.uppercase)
+            .padding(.bottom, 8)
+            .padding(.leading, 4)
+            .accessibilityAddTraits(.isHeader)
+    }
+}
+
+extension View {
+    /// Tło karty: elewowany kolor grupowany, zaokrąglenie 14, cienki obrys i delikatny cień.
+    func neiCardBackground() -> some View {
+        self
             .background(Color(.secondarySystemGroupedBackground))
             .clipShape(RoundedRectangle(cornerRadius: 14))
             .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Color(.separator).opacity(0.6), lineWidth: 0.5))
             .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
-        }
     }
 }
 
