@@ -84,7 +84,9 @@ struct ContentView: View {
                 .environment(locationManager)
                 .task {
                     if let uid = authService.currentUser?.uid {
-                        await transactionVM.loadInbox(ownerId: uid)
+                        async let inbox: () = transactionVM.loadInbox(ownerId: uid)
+                        async let requests: () = transactionVM.loadMyRequests(requesterId: uid)
+                        _ = await (inbox, requests)
                     }
                 }
             } else {

@@ -171,9 +171,18 @@ private struct TransactionRow: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                Text(transaction.createdAt, style: .relative)
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                if transaction.status == .accepted, let dueDate = transaction.dueDate {
+                    Label(
+                        transaction.isOverdue ? "Overdue · \(dueDate.formatted(.dateTime.day().month()))" : "Return by \(dueDate.formatted(.dateTime.day().month()))",
+                        systemImage: transaction.isOverdue ? "exclamationmark.triangle.fill" : "calendar"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(transaction.isOverdue ? .red : .secondary)
+                } else {
+                    Text(transaction.createdAt, style: .relative)
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
             }
 
             Spacer()
