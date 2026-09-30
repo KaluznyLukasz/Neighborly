@@ -129,10 +129,11 @@ struct NEIOfferDetailView: View {
            let uiImage = NEIBase64ImageCache.decodedImage(base64: base64) {
             Image(uiImage: uiImage)
                 .resizable()
-                .scaledToFill()
-                .frame(maxWidth: .infinity)
-                .frame(height: 200)
-                .clipped()
+                // Całe zdjęcie, żeby kadr wybrany w edytorze był widoczny
+                .scaledToFit()
+                .frame(maxWidth: .infinity, maxHeight: 400)
+                .background(.fill.tertiary)
+                .accessibilityIgnoresInvertColors()
                 .clipShape(
                     UnevenRoundedRectangle(bottomLeadingRadius: 20, bottomTrailingRadius: 20)
                 )

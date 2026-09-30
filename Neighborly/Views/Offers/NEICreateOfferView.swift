@@ -46,6 +46,10 @@ struct NEICreateOfferView: View {
     @State private var address = ""
     @State private var category: OfferCategory = .tools
     @State private var photosPickerItem: PhotosPickerItem?
+    // Oryginał zostaje, żeby ponowna edycja zaczynała od pełnego zdjęcia, a nie od wykadrowanego
+    @State private var originalImage: UIImage?
+    @State private var photoCrop = NEIPhotoCrop()
+    @State private var isEditingPhoto = false
     @State private var completer = AddressCompleter()
     @State private var showSuggestions = false
     @State private var skipNextChange = false
@@ -108,8 +112,18 @@ struct NEICreateOfferView: View {
             .onChange(of: photosPickerItem) { _, item in
                 Task {
                     if let data = try? await item?.loadTransferable(type: Data.self),
-                       let image = UIImage(data: data) {
-                        vm.selectedImage = image
+                       let picked = UIImage.neiDownsampled(data: data) {
+                        originalImage = picked
+                        photoCrop = NEIPhotoCrop()
+                        vm.selectedImage = picked
+                    }
+                }
+            }
+            .fullScreenCover(isPresented: $isEditingPhoto) {
+                if let originalImage {
+                    NEIPhotoCropView(image: originalImage, crop: photoCrop) { edited, crop in
+                        vm.selectedImage = edited
+                        photoCrop = crop
                     }
                 }
             }
@@ -209,15 +223,48 @@ struct NEICreateOfferView: View {
                 .fontWeight(.medium)
                 .foregroundStyle(.secondary)
 
-            PhotosPicker(selection: $photosPickerItem, matching: .images) {
-                if let image = vm.selectedImage {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 180)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                } else {
+            if let image = vm.selectedImage {
+                // Ten sam zestaw akcji co w formularzu alertu, ale w kafelku pasującym do tego ekranu
+                VStack(spacing: 0) {
+                    Button {
+                        isEditingPhoto = true
+                    } label: {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(maxWidth: .infinity, maxHeight: 260)
+                            .background(.fill.tertiary)
+                            .accessibilityIgnoresInvertColors()
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Selected photo")
+                    .accessibilityHint("Opens the photo editor")
+
+                    Divider()
+                    Button("Edit Photo", systemImage: "crop.rotate") {
+                        isEditingPhoto = true
+                    }
+                    .photoActionRow()
+
+                    Divider().padding(.leading, 16)
+                    PhotosPicker(selection: $photosPickerItem, matching: .images) {
+                        Label("Replace Photo", systemImage: "photo.on.rectangle")
+                    }
+                    .photoActionRow()
+
+                    Divider().padding(.leading, 16)
+                    Button("Remove Photo", systemImage: "trash", role: .destructive) {
+                        vm.selectedImage = nil
+                        originalImage = nil
+                        photosPickerItem = nil
+                    }
+                    .photoActionRow()
+                    .foregroundStyle(.red)
+                }
+                .background(Color(.secondarySystemGroupedBackground))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+            } else {
+                PhotosPicker(selection: $photosPickerItem, matching: .images) {
                     ZStack {
                         RoundedRectangle(cornerRadius: 12)
                             .fill(Color(.systemGray6))
@@ -235,5 +282,14 @@ struct NEICreateOfferView: View {
                 }
             }
         }
+    }
+}
+
+private extension View {
+    // Wiersz akcji wyglądający jak wiersz w Form (wysokość, wcięcie, pełna szerokość do tapnięcia)
+    func photoActionRow() -> some View {
+        frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+            .padding(.horizontal, 16)
+            .contentShape(Rectangle())
     }
 }
