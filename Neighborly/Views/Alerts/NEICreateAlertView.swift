@@ -20,7 +20,11 @@ struct NEICreateAlertView: View {
     @State private var details = ""
     @State private var isPosting = false
     @State private var photoItem: PhotosPickerItem?
+    // Oryginał zostaje, żeby ponowna edycja zaczynała od pełnego zdjęcia, a nie od wykadrowanego
+    @State private var originalImage: UIImage?
+    @State private var photoCrop = NEIPhotoCrop()
     @State private var image: UIImage?
+    @State private var isEditingPhoto = false
 
     private var canPost: Bool {
         !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isPosting
@@ -55,18 +59,34 @@ struct NEICreateAlertView: View {
 
                 Section {
                     if let image {
-                        Image(uiImage: image)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 180)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                            .listRowInsets(EdgeInsets())
-                            .accessibilityLabel("Selected photo")
-                        Button("Remove Photo", role: .destructive) {
+                        Button {
+                            isEditingPhoto = true
+                        } label: {
+                            Image(uiImage: image)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(maxWidth: .infinity, maxHeight: 260)
+                                .background(.fill.tertiary)
+                                .accessibilityIgnoresInvertColors()
+                        }
+                        .buttonStyle(.plain)
+                        .listRowInsets(EdgeInsets())
+                        .accessibilityLabel("Selected photo")
+                        .accessibilityHint("Opens the photo editor")
+
+                        Button("Edit Photo", systemImage: "crop.rotate") {
+                            isEditingPhoto = true
+                        }
+                        PhotosPicker(selection: $photoItem, matching: .images) {
+                            Label("Replace Photo", systemImage: "photo.on.rectangle")
+                        }
+                        Button("Remove Photo", systemImage: "trash", role: .destructive) {
                             self.image = nil
+                            originalImage = nil
                             photoItem = nil
                         }
+                        // W Form rola .destructive barwi tylko tekst — ikona zostaje w kolorze akcentu
+                        .foregroundStyle(.red)
                     } else {
                         PhotosPicker(selection: $photoItem, matching: .images) {
                             Label("Add Photo", systemImage: "camera.fill")
@@ -79,8 +99,18 @@ struct NEICreateAlertView: View {
             .onChange(of: photoItem) { _, item in
                 Task {
                     if let data = try? await item?.loadTransferable(type: Data.self),
-                       let picked = UIImage(data: data) {
+                       let picked = UIImage.neiDownsampled(data: data) {
+                        originalImage = picked
+                        photoCrop = NEIPhotoCrop()
                         image = picked
+                    }
+                }
+            }
+            .fullScreenCover(isPresented: $isEditingPhoto) {
+                if let originalImage {
+                    NEIPhotoCropView(image: originalImage, crop: photoCrop) { edited, crop in
+                        image = edited
+                        photoCrop = crop
                     }
                 }
             }
