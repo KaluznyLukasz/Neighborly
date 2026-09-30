@@ -69,38 +69,49 @@ struct NEITransactionListView: View {
     @ViewBuilder
     private var listContent: some View {
         if selectedTab == 2 {
+            // Każdy post jako osobna karta — sekcja na wiersz daje odstęp między nimi.
             List {
                 ForEach(myOffers) { offer in
-                    TransactionOfferRow(offer: offer)
-                        .listRowBackground(Color(.secondarySystemGroupedBackground))
-                }
-                .onDelete { indexSet in
-                    Task { await deleteOffers(at: indexSet) }
+                    Section {
+                        NEIPostRow(offer: offer)
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
+                                    Task { await deleteOffer(offer) }
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
+                    }
                 }
             }
-            .listStyle(.plain)
+            .listStyle(.insetGrouped)
+            .listSectionSpacing(12)
+            .contentMargins(.top, 4, for: .scrollContent)
             .overlay {
                 if myOffers.isEmpty { emptyState }
             }
         } else {
             List {
                 ForEach(selectedTab == 0 ? vm.inbox : vm.myRequests) { transaction in
-                    TransactionRow(transaction: transaction, isInbox: selectedTab == 0)
-                        .contentShape(Rectangle())
-                        .onTapGesture { selectedTransaction = transaction }
-                        .listRowBackground(Color(.secondarySystemGroupedBackground))
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            if transaction.status == .rejected || transaction.status == .cancelled || transaction.status == .completed {
-                                Button(role: .destructive) {
-                                    Task { await vm.delete(transaction: transaction) }
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
+                    Section {
+                        TransactionRow(transaction: transaction, isInbox: selectedTab == 0)
+                            .contentShape(Rectangle())
+                            .onTapGesture { selectedTransaction = transaction }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                if transaction.status == .rejected || transaction.status == .cancelled || transaction.status == .completed {
+                                    Button(role: .destructive) {
+                                        Task { await vm.delete(transaction: transaction) }
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
                                 }
                             }
-                        }
+                    }
                 }
             }
-            .listStyle(.plain)
+            .listStyle(.insetGrouped)
+            .listSectionSpacing(12)
+            .contentMargins(.top, 4, for: .scrollContent)
             .overlay {
                 if (selectedTab == 0 ? vm.inbox : vm.myRequests).isEmpty {
                     emptyState
@@ -141,13 +152,10 @@ struct NEITransactionListView: View {
         isLoadingOffers = false
     }
 
-    private func deleteOffers(at indexSet: IndexSet) async {
-        for index in indexSet {
-            let offer = myOffers[index]
-            guard let id = offer.id else { continue }
-            try? await offerService.deleteOffer(id: id)
-        }
-        myOffers.remove(atOffsets: indexSet)
+    private func deleteOffer(_ offer: Offer) async {
+        guard let id = offer.id else { return }
+        try? await offerService.deleteOffer(id: id)
+        myOffers.removeAll { $0.id == id }
     }
 }
 
@@ -156,20 +164,22 @@ private struct TransactionRow: View {
     let isInbox: Bool
 
     var body: some View {
-        HStack(spacing: 14) {
-            Image(systemName: isInbox ? "person.crop.circle" : "arrow.up.circle")
-                .font(.title2)
-                .foregroundStyle(.green)
-                .frame(width: 36)
+        HStack(spacing: 12) {
+            NEIRowIconTile(
+                systemImage: isInbox ? "person.fill" : "arrow.up.right",
+                color: Color.neiGreen
+            )
 
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(transaction.offerTitle)
-                    .font(.subheadline)
+                    .font(.body)
                     .fontWeight(.medium)
+                    .lineLimit(1)
                 if isInbox {
                     Text("Volunteer: \(transaction.requesterName)")
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
+                        .lineLimit(1)
                 }
                 if transaction.status == .accepted, let dueDate = transaction.dueDate {
                     Label(
@@ -179,47 +189,16 @@ private struct TransactionRow: View {
                     .font(.caption)
                     .foregroundStyle(transaction.isOverdue ? .red : .secondary)
                 } else {
-                    Text(transaction.createdAt, style: .relative)
-                        .font(.caption2)
+                    Text(transaction.createdAt.formatted(.relative(presentation: .named)))
+                        .font(.caption)
                         .foregroundStyle(.tertiary)
                 }
             }
 
-            Spacer()
+            Spacer(minLength: 8)
             NEIStatusBadge(status: transaction.status)
         }
-        .padding(.vertical, 8)
-    }
-}
-
-private struct TransactionOfferRow: View {
-    let offer: Offer
-
-    var body: some View {
-        HStack(spacing: 14) {
-            Image(systemName: offer.category.systemImage)
-                .font(.title2)
-                .foregroundStyle(.green)
-                .frame(width: 36)
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text(offer.title)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                if let address = offer.address, !address.isEmpty {
-                    Text(address)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                Text(offer.createdAt, style: .relative)
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-            }
-
-            Spacer()
-
-            NEICategoryBadge(category: offer.category)
-        }
-        .padding(.vertical, 8)
+        .padding(.vertical, 4)
+        .accessibilityElement(children: .combine)
     }
 }
