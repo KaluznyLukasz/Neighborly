@@ -5,6 +5,8 @@ learning under `docs/learnings/`. Add with `/nei-learn`; promote recurring rules
 `CLAUDE.md` with `/nei-distill`.
 
 <!-- newest first -->
+- [ios27-sim-provisional-notifications-denied](ios27-sim-provisional-notifications-denied.md) — iOS 27 beta sim: provisional auth reports granted but add() fails as Denied; test reminders on an iOS 26.x sim
+- [derived-data-per-checkout](derived-data-per-checkout.md) — each worktree has its own DerivedData (MD5 of project path); use scripts/derived-data.sh, never a Neighborly-* glob
 - [sim-no-tap-use-launch-arg-hook](sim-no-tap-use-launch-arg-hook.md) — simctl can't tap; screenshot a deep screen via a temporary launch-arg branch in ContentView
 - [button-in-list-tints-primary-text-blue](button-in-list-tints-primary-text-blue.md) — Button label in a List row renders .primary/.secondary text accent blue; use Color(.label)/Color(.secondaryLabel)
 - [list-row-restyles-label-in-button](list-row-restyles-label-in-button.md) — Label in a Button inside a List row loses its title and stretches; use HStack { Image; Text }

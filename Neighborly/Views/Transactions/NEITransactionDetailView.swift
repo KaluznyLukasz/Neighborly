@@ -13,6 +13,7 @@ struct NEITransactionDetailView: View {
 
     @State private var status: TransactionStatus
     @State private var dueDate: Date?
+    @State private var dueHasTime: Bool
     @State private var showReviewSheet = false
     @State private var showChatSheet = false
     @State private var showProfileSheet = false
@@ -30,6 +31,7 @@ struct NEITransactionDetailView: View {
         self.vm = vm
         _status = State(initialValue: transaction.status)
         _dueDate = State(initialValue: transaction.dueDate)
+        _dueHasTime = State(initialValue: transaction.hasDueTime)
     }
 
     var body: some View {
@@ -158,63 +160,21 @@ struct NEITransactionDetailView: View {
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
-    private var isReturn: Bool { transaction.dateKind == .returnDate }
-
-    private var isOverdue: Bool {
-        guard status == .accepted, isReturn, let dueDate else { return false }
-        return dueDate < Calendar.current.startOfDay(for: Date())
-    }
-
     private var returnCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if isOwner {
-                Toggle(isReturn ? "Ask for return" : "Set a reminder", isOn: Binding(
-                    get: { dueDate != nil },
-                    set: { on in
-                        let new = on ? Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: Date())) : nil
-                        setDueDate(new)
-                    }
-                ))
-                if let dueDate {
-                    DatePicker(
-                        isReturn ? "Return by" : "Planned for",
-                        selection: Binding(get: { dueDate }, set: { setDueDate(Calendar.current.startOfDay(for: $0)) }),
-                        in: Calendar.current.startOfDay(for: Date())...,
-                        displayedComponents: .date
-                    )
-                }
-                Text("Both of you get a reminder the day before and on the day.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            } else if let dueDate {
-                Label {
-                    Text("\(isReturn ? "Return by" : "Planned for") \(dueDate, format: .dateTime.weekday(.wide).day().month(.wide))")
-                } icon: {
-                    Image(systemName: "calendar.badge.clock")
-                }
-                .font(.subheadline)
-            } else {
-                Label(isReturn ? "No return date set" : "No date set", systemImage: "calendar")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-
-            if isOverdue {
-                Label("Overdue", systemImage: "exclamationmark.triangle.fill")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.red)
-            }
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.systemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        NEIDueDateCard(
+            dateKind: transaction.dateKind,
+            isOwner: isOwner,
+            userId: currentUserId,
+            dueDate: dueDate,
+            hasTime: dueHasTime,
+            onChange: setDueDate
+        )
     }
 
-    private func setDueDate(_ new: Date?) {
+    private func setDueDate(_ new: Date?, hasTime: Bool) {
         dueDate = new
-        Task { await vm.setDueDate(transaction: transaction, dueDate: new) }
+        dueHasTime = new != nil && hasTime
+        Task { await vm.setDueDate(transaction: transaction, dueDate: new, hasTime: hasTime) }
     }
 
     private func messageCard(_ msg: String) -> some View {
@@ -237,8 +197,13 @@ struct NEITransactionDetailView: View {
         switch status {
         case .pending where isOwner:
             VStack(spacing: 10) {
+                // Arkusz zostaje otwarty — od razu pojawia się karta terminu
                 NEIPrimaryButton("Accept Volunteer") {
-                    Task { await vm.accept(transaction: transaction); dismiss() }
+                    Task {
+                        if await vm.accept(transaction: transaction) {
+                            withAnimation { status = .accepted }
+                        }
+                    }
                 }
                 Button(role: .destructive) {
                     Task { await vm.reject(transaction: transaction); dismiss() }

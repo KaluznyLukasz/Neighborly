@@ -7,11 +7,15 @@
 
 import SwiftUI
 import FirebaseCore
+import UserNotifications
 
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         FirebaseApp.configure()
+        // Delegat musi być ustawiony przed końcem startu, inaczej tapnięcie w przypomnienie
+        // przy zamkniętej aplikacji przepada
+        UNUserNotificationCenter.current().delegate = NEINotificationRouter.shared
         return true
     }
 }
