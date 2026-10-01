@@ -158,15 +158,17 @@ struct NEITransactionDetailView: View {
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
+    private var isReturn: Bool { transaction.dateKind == .returnDate }
+
     private var isOverdue: Bool {
-        guard status == .accepted, let dueDate else { return false }
+        guard status == .accepted, isReturn, let dueDate else { return false }
         return dueDate < Calendar.current.startOfDay(for: Date())
     }
 
     private var returnCard: some View {
         VStack(alignment: .leading, spacing: 8) {
             if isOwner {
-                Toggle("Ask for return", isOn: Binding(
+                Toggle(isReturn ? "Ask for return" : "Set a reminder", isOn: Binding(
                     get: { dueDate != nil },
                     set: { on in
                         let new = on ? Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: Date())) : nil
@@ -175,7 +177,7 @@ struct NEITransactionDetailView: View {
                 ))
                 if let dueDate {
                     DatePicker(
-                        "Return by",
+                        isReturn ? "Return by" : "Planned for",
                         selection: Binding(get: { dueDate }, set: { setDueDate(Calendar.current.startOfDay(for: $0)) }),
                         in: Calendar.current.startOfDay(for: Date())...,
                         displayedComponents: .date
@@ -186,13 +188,13 @@ struct NEITransactionDetailView: View {
                     .foregroundStyle(.secondary)
             } else if let dueDate {
                 Label {
-                    Text("Return by \(dueDate, format: .dateTime.weekday(.wide).day().month(.wide))")
+                    Text("\(isReturn ? "Return by" : "Planned for") \(dueDate, format: .dateTime.weekday(.wide).day().month(.wide))")
                 } icon: {
                     Image(systemName: "calendar.badge.clock")
                 }
                 .font(.subheadline)
             } else {
-                Label("No return date set", systemImage: "calendar")
+                Label(isReturn ? "No return date set" : "No date set", systemImage: "calendar")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }

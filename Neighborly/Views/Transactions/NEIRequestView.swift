@@ -125,6 +125,7 @@ struct NEIRequestView: View {
             requesterId: requesterId,
             requesterName: requesterName,
             ownerId: offer.ownerId,
+            offerCategory: offer.category,
             status: .pending,
             message: message.trimmingCharacters(in: .whitespaces).isEmpty ? nil : message,
             createdAt: Date(),

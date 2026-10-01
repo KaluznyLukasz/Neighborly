@@ -56,19 +56,13 @@ extension View {
 struct NEISettingsRow<Trailing: View>: View {
     let title: String
     let systemImage: String
-    let iconColor: Color
-    let iconBackground: Color
+    let tint: Color
     var showChevron: Bool = true
     @ViewBuilder var trailing: () -> Trailing
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: systemImage)
-                .font(.subheadline)
-                .foregroundStyle(iconColor)
-                .frame(width: 36, height: 36)
-                .background(iconBackground)
-                .clipShape(RoundedRectangle(cornerRadius: 9))
+            NEISettingsIcon(systemImage: systemImage, tint: tint)
 
             Text(title)
                 .font(.subheadline)
@@ -83,6 +77,7 @@ struct NEISettingsRow<Trailing: View>: View {
                 Image(systemName: "chevron.right")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
+                    .accessibilityHidden(true)
             }
         }
         .padding(.vertical, 8)
@@ -91,7 +86,7 @@ struct NEISettingsRow<Trailing: View>: View {
 }
 
 extension NEISettingsRow where Trailing == EmptyView {
-    init(title: String, systemImage: String, iconColor: Color, iconBackground: Color, showChevron: Bool = true) {
-        self.init(title: title, systemImage: systemImage, iconColor: iconColor, iconBackground: iconBackground, showChevron: showChevron) { EmptyView() }
+    init(title: String, systemImage: String, tint: Color, showChevron: Bool = true) {
+        self.init(title: title, systemImage: systemImage, tint: tint, showChevron: showChevron) { EmptyView() }
     }
 }

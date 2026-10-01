@@ -16,4 +16,11 @@ enum NEIUserPreferences {
         }
         set { UserDefaults.standard.set(newValue, forKey: searchRadiusKey) }
     }
+
+    // Klucz współdzielony z @AppStorage w ustawieniach; domyślnie włączone
+    static let remindersKey = "remindersEnabled"
+
+    static var remindersEnabled: Bool {
+        UserDefaults.standard.object(forKey: remindersKey) as? Bool ?? true
+    }
 }

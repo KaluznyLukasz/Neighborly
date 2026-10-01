@@ -38,12 +38,8 @@ struct NEIProfileView: View {
                         currentUserId: uid,
                         currentUserName: vm.user?.displayName ?? authService.currentUser?.displayName ?? ""
                     )
-                case .guidelines:
-                    NEIGuidelinesView()
                 case .settings:
                     NEISettingsView(vm: vm, userId: uid)
-                case .blockedUsers:
-                    NEIBlockedUsersView(currentUserId: uid)
                 }
             }
         }
@@ -52,7 +48,7 @@ struct NEIProfileView: View {
     // Kilka NavigationLink w jednym wierszu List odpala wszystkie naraz — dlatego
     // przyciski ustawiają cel, a nawigację robi .navigationDestination(item:).
     private enum Destination: Hashable {
-        case allReviews, savedOffers, guidelines, settings, blockedUsers
+        case allReviews, savedOffers, settings
     }
 
     // List zamiast ScrollView — tylko w List działa .swipeActions na postach.
@@ -235,43 +231,25 @@ struct NEIProfileView: View {
     private var settingsSection: some View {
         NEISectionCard(title: "Account") {
             ShareLink(item: "Check out Neighborly — a neighbor-to-neighbor app for lending a hand and getting help nearby!") {
-                NEISettingsRow(title: "Invite Neighbors", systemImage: "square.and.arrow.up", iconColor: Color.neiAmber, iconBackground: Color.neiAmberLight, showChevron: false)
+                NEISettingsRow(title: "Invite Neighbors", systemImage: "square.and.arrow.up", tint: Color.neiAmber, showChevron: false)
             }
             .buttonStyle(.plain)
 
-            Divider().padding(.leading, 52)
+            Divider().padding(.leading, 41)
 
             Button {
                 destination = .savedOffers
             } label: {
-                NEISettingsRow(title: "Saved Offers", systemImage: "bookmark.fill", iconColor: Color.neiGreen, iconBackground: Color.neiGreenLight)
+                NEISettingsRow(title: "Saved Offers", systemImage: "bookmark.fill", tint: Color.neiGreen)
             }
             .buttonStyle(.plain)
 
-            Divider().padding(.leading, 52)
-
-            Button {
-                destination = .guidelines
-            } label: {
-                NEISettingsRow(title: "Community Guidelines", systemImage: "hand.raised.fill", iconColor: Color(.systemGray), iconBackground: Color(.systemGray5))
-            }
-            .buttonStyle(.plain)
-
-            Divider().padding(.leading, 52)
+            Divider().padding(.leading, 41)
 
             Button {
                 destination = .settings
             } label: {
-                NEISettingsRow(title: "Settings", systemImage: "gearshape.fill", iconColor: Color(.systemGray), iconBackground: Color(.systemGray5))
-            }
-            .buttonStyle(.plain)
-
-            Divider().padding(.leading, 52)
-
-            Button {
-                destination = .blockedUsers
-            } label: {
-                NEISettingsRow(title: "Blocked Users", systemImage: "person.fill.xmark", iconColor: Color.neiRed, iconBackground: Color.neiRed.opacity(0.15))
+                NEISettingsRow(title: "Settings", systemImage: "gearshape.fill", tint: Color(.systemGray))
             }
             .buttonStyle(.plain)
         }

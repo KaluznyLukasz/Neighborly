@@ -19,8 +19,6 @@ extension Color {
     // półprzezroczysty odcień koloru marki, żeby był kontrast.
     static let neiGreenLight = Color(light: Color(hex: "#E8F5E9"),
                                      dark:  Color(hex: "#3CB371").opacity(0.22))
-    static let neiAmberLight = Color(light: Color(hex: "#FFF3E0"),
-                                     dark:  Color(hex: "#FF9500").opacity(0.22))
 
     /// Kolor zależny od trybu jasny/ciemny (bez katalogu zasobów).
     init(light: Color, dark: Color) {
