@@ -18,72 +18,61 @@ struct NEIRequestView: View {
 
     private let transactionService = NEITransactionService()
 
+    // Widok jest pushowany na stosie nawigacji szczegółów oferty (bez własnego
+    // NavigationStack i bez sheeta) — wstecz wraca przycisk systemowy.
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    sectionLabel("Offer")
-                    offerSummary
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                NEISectionLabel("Offer")
+                offerSummary
 
-                    VStack(alignment: .leading, spacing: 6) {
-                        sectionLabel("Message to the owner (optional)")
+                VStack(alignment: .leading, spacing: 6) {
+                    NEISectionLabel("Message to the owner (optional)")
 
-                        ZStack(alignment: .topLeading) {
-                            TextEditor(text: $message)
-                                .frame(minHeight: 100)
-                                .scrollContentBackground(.hidden)
+                    ZStack(alignment: .topLeading) {
+                        TextEditor(text: $message)
+                            .frame(minHeight: 100)
+                            .scrollContentBackground(.hidden)
 
-                            if message.isEmpty {
-                                Text("Let them know how you'd like to help…")
-                                    .foregroundStyle(.tertiary)
-                                    .padding(.top, 8)
-                                    .padding(.leading, 5)
-                                    .allowsHitTesting(false)
-                            }
+                        if message.isEmpty {
+                            Text("Let them know how you'd like to help…")
+                                .foregroundStyle(.tertiary)
+                                .padding(.top, 8)
+                                .padding(.leading, 5)
+                                .allowsHitTesting(false)
                         }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 12)
-                        .background(Color(.systemBackground))
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(Color(.systemGray4), lineWidth: 1)
-                        )
                     }
-
-                    if let error = errorMessage {
-                        Text(error)
-                            .font(.caption)
-                            .foregroundStyle(.red)
-                    }
-
-                    NEIPrimaryButton("Send Request", isLoading: isLoading) {
-                        Task { await sendRequest() }
-                    }
-                }
-                .padding(24)
-            }
-            .scrollDismissesKeyboard(.interactively)
-            .background(Color(.systemGroupedBackground).ignoresSafeArea())
-            .navigationTitle("Offer to Help")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .cardStyle(cornerRadius: 10)
                 }
             }
+            .padding(20)
         }
-        .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
+        .scrollDismissesKeyboard(.interactively)
+        .background(Color(.systemGroupedBackground).ignoresSafeArea())
+        // Przycisk przypięty na dole jak w szczegółach oferty — widoczny przy każdym detentcie arkusza
+        .safeAreaInset(edge: .bottom) { sendBar }
+        .navigationTitle("Offer to Help")
+        .navigationBarTitleDisplayMode(.inline)
     }
 
-    private func sectionLabel(_ title: String) -> some View {
-        Text(title)
-            .font(.footnote)
-            .fontWeight(.semibold)
-            .foregroundStyle(.secondary)
-            .textCase(.uppercase)
-            .padding(.leading, 4)
+    private var sendBar: some View {
+        VStack(spacing: 0) {
+            Divider()
+            VStack(spacing: 10) {
+                if let error = errorMessage {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
+                NEIPrimaryButton("Send Request", isLoading: isLoading) {
+                    Task { await sendRequest() }
+                }
+            }
+            .padding(20)
+        }
+        .background(.regularMaterial)
     }
 
     private var offerSummary: some View {
@@ -98,12 +87,7 @@ struct NEIRequestView: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .strokeBorder(Color(.separator).opacity(0.6), lineWidth: 0.5)
-        )
+        .cardStyle()
     }
 
     private func sendRequest() async {

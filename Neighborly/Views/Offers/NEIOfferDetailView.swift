@@ -14,7 +14,8 @@ struct NEIOfferDetailView: View {
 
     @State private var activeOverride: Bool?
     @State private var togglingActive = false
-    @State private var showRequestSheet = false
+    @State private var showRequest = false
+    @State private var showDeleteConfirmation = false
     @State private var alreadyApplied = false
     @State private var checkingRequest = true
     @State private var justSent = false
@@ -32,25 +33,22 @@ struct NEIOfferDetailView: View {
                 VStack(alignment: .leading, spacing: 24) {
                     headerImage
 
-                    VStack(alignment: .leading, spacing: 6) {
-                        NEICategoryBadge(category: offer.category)
-                        Text(offer.title)
-                            .font(.title2)
-                            .fontWeight(.bold)
-                        Text("Posted \(offer.createdAt, style: .relative) ago")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.horizontal, 20)
-
-                    infoCard
+                    titleBlock
                         .padding(.horizontal, 20)
 
                     detailsSection
                         .padding(.horizontal, 20)
 
-                    ownerSection
-                        .padding(.horizontal, 20)
+                    if let address = offer.address, !address.isEmpty {
+                        locationSection(address)
+                            .padding(.horizontal, 20)
+                    }
+
+                    // Własny post nie potrzebuje karty "Posted by" z własnym profilem
+                    if !isOwner {
+                        ownerSection
+                            .padding(.horizontal, 20)
+                    }
                 }
                 .padding(.top, offer.imageBase64 == nil ? 12 : 0)
                 .padding(.bottom, 24)
@@ -90,7 +88,8 @@ struct NEIOfferDetailView: View {
                 alreadyApplied = existing?.id != nil
                 checkingRequest = false
             }
-            .sheet(isPresented: $showRequestSheet) {
+            // Push zamiast sheeta — arkusz na arkuszu wygląda źle
+            .navigationDestination(isPresented: $showRequest) {
                 NEIRequestView(
                     offer: offer,
                     requesterId: currentUserId,
@@ -105,6 +104,14 @@ struct NEIOfferDetailView: View {
                 NEIUserProfileView(userId: offer.ownerId)
             }
             .toolbar(.hidden, for: .navigationBar)
+            .confirmationDialog("Delete this request?", isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
+                Button("Delete Request", role: .destructive) {
+                    onDelete?()
+                    dismiss()
+                }
+            } message: {
+                Text("This can't be undone.")
+            }
             .alert("Error", isPresented: .init(
                 get: { favoriteVM.errorMessage != nil },
                 set: { if !$0 { favoriteVM.errorMessage = nil } }
@@ -140,56 +147,64 @@ struct NEIOfferDetailView: View {
         }
     }
 
-    // MARK: - Info
+    // MARK: - Title
 
-    private var infoCard: some View {
-        VStack(spacing: 0) {
-            if let address = offer.address, !address.isEmpty {
-                infoRow(icon: "mappin.circle.fill", label: "Location", value: address)
-                Divider().padding(.leading, 52)
+    // Kategoria i data już są w nagłówku — nie powtarzamy ich w osobnej karcie
+    private var titleBlock: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                NEICategoryBadge(category: offer.category)
+                if isOwner && !effectiveActive {
+                    Label("Paused", systemImage: "pause.circle.fill")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Color.orange.opacity(0.15))
+                        .foregroundStyle(Color.orange)
+                        .clipShape(Capsule())
+                }
             }
-            infoRow(
-                icon: "clock",
-                label: "Posted",
-                value: offer.createdAt.formatted(date: .abbreviated, time: .shortened)
-            )
-            Divider().padding(.leading, 52)
-            infoRow(icon: "tag", label: "Category", value: offer.category.displayName)
+            Text(offer.title)
+                .font(.title2)
+                .fontWeight(.bold)
+            Text("Posted \(offer.createdAt.formatted(.relative(presentation: .named)))")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            if isOwner && !effectiveActive {
+                Text("Hidden from map and search")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
         }
-        .padding(.vertical, 4)
-        .cardStyle()
     }
 
-    private func infoRow(icon: String, label: String, value: String) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .frame(width: 28)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(label)
-                    .font(.caption)
+    // MARK: - Location
+
+    private func locationSection(_ address: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            NEISectionLabel("Location")
+            HStack(spacing: 12) {
+                Image(systemName: "mappin.circle.fill")
+                    .font(.title3)
                     .foregroundStyle(.secondary)
-                Text(value)
-                    .font(.subheadline)
+                    .accessibilityHidden(true)
+                Text(address)
+                    .font(.body)
                     .foregroundStyle(.primary)
+                    .textSelection(.enabled)
+                Spacer(minLength: 0)
             }
-            Spacer(minLength: 0)
+            .padding(14)
+            .cardStyle()
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
     }
 
     // MARK: - Details
 
     private var detailsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Details")
-                .font(.footnote)
-                .fontWeight(.semibold)
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
-                .padding(.leading, 4)
+            NEISectionLabel("Details")
             Text(offer.description)
                 .font(.body)
                 .foregroundStyle(.primary)
@@ -204,12 +219,7 @@ struct NEIOfferDetailView: View {
 
     private var ownerSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Posted by")
-                .font(.footnote)
-                .fontWeight(.semibold)
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
-                .padding(.leading, 4)
+            NEISectionLabel("Posted by")
             Button {
                 showOwnerProfile = true
             } label: {
@@ -262,7 +272,7 @@ struct NEIOfferDetailView: View {
                 alreadyApplied ? "Applied" : "Offer to Help",
                 isLoading: checkingRequest
             ) {
-                if !alreadyApplied && !checkingRequest { showRequestSheet = true }
+                if !alreadyApplied && !checkingRequest { showRequest = true }
             }
             favoriteButton
         }
@@ -284,14 +294,10 @@ struct NEIOfferDetailView: View {
             }
     }
 
+    // Jeden niski rząd, tak jak przy "Offer to Help" + zakładka — dłuższy pasek zjadał
+    // większość arkusza w medium detent i nie dało się przewinąć szczegółów.
     private var ownerActions: some View {
-        VStack(spacing: 12) {
-            Label(effectiveActive ? "This is your request" : "Paused — hidden from map and search",
-                  systemImage: effectiveActive ? "checkmark.seal.fill" : "pause.circle.fill")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity)
-
+        HStack(spacing: 12) {
             if let id = offer.id {
                 Button {
                     let newValue = !effectiveActive
@@ -315,16 +321,18 @@ struct NEIOfferDetailView: View {
                 .disabled(togglingActive)
             }
 
-            if let onDelete {
+            if onDelete != nil {
                 Button(role: .destructive) {
-                    onDelete()
-                    dismiss()
+                    showDeleteConfirmation = true
                 } label: {
-                    Text("Delete Request")
-                        .font(.subheadline)
+                    Image(systemName: "trash")
+                        .font(.headline)
                         .foregroundStyle(.red)
+                        .frame(width: 52, height: 52)
+                        .background(Color.red.opacity(0.12))
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
-                .padding(.top, 2)
+                .accessibilityLabel("Delete Request")
             }
         }
     }
@@ -346,18 +354,5 @@ struct NEICategoryBadge: View {
             .background(category.color.opacity(0.15))
             .foregroundStyle(category.color)
             .clipShape(Capsule())
-    }
-}
-
-private extension View {
-    /// Wspólny styl karty: tło elewowane + cienki obrys (kontrast też w dark mode).
-    func cardStyle(cornerRadius: CGFloat = 14) -> some View {
-        self
-            .background(Color(.secondarySystemGroupedBackground))
-            .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-            .overlay(
-                RoundedRectangle(cornerRadius: cornerRadius)
-                    .strokeBorder(Color(.separator).opacity(0.6), lineWidth: 0.5)
-            )
     }
 }
