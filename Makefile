@@ -10,7 +10,7 @@ SCHEME    := Neighborly
 BUNDLE_ID := app.me.kaluzny.lukasz.Neighborly
 SIM       ?=
 DEVICE    ?=
-DD         = $(shell ls -d ~/Library/Developer/Xcode/DerivedData/Neighborly-* 2>/dev/null | head -1)
+DD         = $(shell scripts/derived-data.sh)
 APP        = $(DD)/Build/Debug-iphonesimulator/Neighborly.app
 
 .PHONY: help build run run-device screenshot logs stop sims devices clean nuke clean-cache lint format
@@ -60,7 +60,7 @@ clean:
 	@rm -rf "$(DD)/Build" && echo "removed build products"
 
 nuke:
-	@rm -rf ~/Library/Developer/Xcode/DerivedData/Neighborly-* && echo "deleted Neighborly DerivedData"
+	@[ -n "$(DD)" ] && rm -rf "$(DD)" && echo "deleted $(DD)" || echo "no DerivedData for this checkout"
 
 clean-cache:
 	@rm -rf ~/Library/Caches/org.swift.swiftpm/repositories \

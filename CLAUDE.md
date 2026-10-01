@@ -38,6 +38,9 @@ This wraps `xcodebuild` (targeting `Neighborly` / iphonesimulator / Debug via `X
 3. SwiftPM writes each package's generated module maps only into that package's own build dir, but a consuming package looks for them under its own build dir — the script pools every generated modulemap across all checkouts and copies the union back into every checkout so cross-package lookups resolve.
 4. Without `-derivedDataPath`, the app target's own build products default to `$(SRCROOT)/build` while SwiftPM package products go to DerivedData regardless, so the app's resource-embed phase can't find package resource bundles — the script sets `SYMROOT` to point both at the same place.
 
+The DerivedData dir is per checkout (`scripts/derived-data.sh` computes it), so git worktrees
+build side by side without sharing products.
+
 Verified working end-to-end from a fully clean `DerivedData`, single pass, no manual retries. If it ever fails on something new, read the script's comments for context on what's already handled, fix forward, and update the script + this section rather than declaring CLI builds broken again.
 
 ## Architecture
