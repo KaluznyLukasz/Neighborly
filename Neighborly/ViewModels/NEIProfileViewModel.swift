@@ -34,6 +34,16 @@ final class NEIProfileViewModel {
         isLoading = false
     }
 
+    func deleteOffer(_ offer: Offer) async {
+        guard let id = offer.id else { return }
+        do {
+            try await offerService.deleteOffer(id: id)
+            offers.removeAll { $0.id == id }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     func updateProfile(userId: String, displayName: String, bio: String, email: String) async {
         isSaving = true
         errorMessage = nil

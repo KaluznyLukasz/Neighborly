@@ -5,6 +5,9 @@ learning under `docs/learnings/`. Add with `/nei-learn`; promote recurring rules
 `CLAUDE.md` with `/nei-distill`.
 
 <!-- newest first -->
+- [list-row-restyles-label-in-button](list-row-restyles-label-in-button.md) — Label in a Button inside a List row loses its title and stretches; use HStack { Image; Text }
+- [list-row-multiple-navigationlinks-fire-all](list-row-multiple-navigationlinks-fire-all.md) — several NavigationLinks in one List row all fire on one tap; use Buttons + .navigationDestination(item:)
+- [swipeactions-need-a-list](swipeactions-need-a-list.md) — .swipeActions does nothing in ScrollView/VStack; use a plain List with clear, separator-less rows
 - [form-destructive-button-icon-stays-blue](form-destructive-button-icon-stays-blue.md) — destructive Button with systemImage in a Form: title red, icon blue; add .foregroundStyle(.red)
 - [section-per-row-breaks-ondelete](section-per-row-breaks-ondelete.md) — one Section per List row kills ForEach.onDelete; use per-row .swipeActions
 - [swiftui-views-need-explicit-firebaseauth-import](swiftui-views-need-explicit-firebaseauth-import.md) — new views reading User.uid/displayName need `import FirebaseAuth` (MemberImportVisibility); SourceKit lies, build tells
