@@ -46,7 +46,9 @@ enum NEIReminderService {
 
     // Pełne pytanie o zgodę, gdy jeszcze go nie było (albo jest tylko cicha zgoda). W kolejce
     // razem z synchronizacją, więc ta poczeka na odpowiedź i nie poprosi w tym czasie o cichą zgodę.
+    // Przy przypomnieniach wyłączonych w ustawieniach nie pytamy wcale.
     static func requestAuthorizationIfNeeded() async {
+        guard NEIUserPreferences.remindersEnabled else { return }
         await serialized {
             let status = await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
             guard status == .notDetermined || status == .provisional else { return }
