@@ -4,6 +4,7 @@ import FirebaseAuth
 struct NEIProfileView: View {
     @EnvironmentObject var authService: NEIAuthService
     @State private var vm = NEIProfileViewModel()
+    @State private var destination: Destination?
 
     private var uid: String { authService.currentUser?.uid ?? "" }
 
@@ -28,25 +29,52 @@ struct NEIProfileView: View {
                 Text(vm.errorMessage ?? "")
             }
             .task { await vm.load(userId: uid) }
+            .navigationDestination(item: $destination) { destination in
+                switch destination {
+                case .allReviews:
+                    NEIAllReviewsView(reviews: vm.reviews)
+                case .savedOffers:
+                    NEISavedOffersView(
+                        currentUserId: uid,
+                        currentUserName: vm.user?.displayName ?? authService.currentUser?.displayName ?? ""
+                    )
+                case .guidelines:
+                    NEIGuidelinesView()
+                case .settings:
+                    NEISettingsView(vm: vm, userId: uid)
+                case .blockedUsers:
+                    NEIBlockedUsersView(currentUserId: uid)
+                }
+            }
         }
     }
 
+    // Kilka NavigationLink w jednym wierszu List odpala wszystkie naraz — dlatego
+    // przyciski ustawiają cel, a nawigację robi .navigationDestination(item:).
+    private enum Destination: Hashable {
+        case allReviews, savedOffers, guidelines, settings, blockedUsers
+    }
+
+    // List zamiast ScrollView — tylko w List działa .swipeActions na postach.
+    // Wiersze bez tła i separatorów, więc wygląd zostaje jak w zwykłym stosie kart.
     @ViewBuilder
     private var scrollContent: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                heroCard
-                    .padding(.bottom, 20)
+        List {
+            heroCard
+                .profileRow(EdgeInsets(top: 0, leading: 0, bottom: 20, trailing: 0))
 
-                VStack(spacing: 16) {
-                    postsSection
-                    reviewsSection
-                    settingsSection
-                }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 24)
-            }
+            postsSection
+
+            reviewsSection
+                .profileRow(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+
+            settingsSection
+                .profileRow(EdgeInsets(top: 8, leading: 16, bottom: 24, trailing: 16))
         }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .contentMargins(.top, 0, for: .scrollContent)
+        .environment(\.defaultMinListRowHeight, 0)
         .refreshable { await vm.load(userId: uid) }
         .background(Color(.systemGroupedBackground))
     }
@@ -140,19 +168,28 @@ struct NEIProfileView: View {
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.vertical, 12)
             }
+            .profileRow(EdgeInsets(top: 0, leading: 16, bottom: 8, trailing: 16))
         } else {
-            // Każdy post jako osobna karta — ten sam wygląd co w Activity → My Posts.
-            VStack(alignment: .leading, spacing: 0) {
-                NEISectionHeader(title: "My Posts")
-                VStack(spacing: 10) {
-                    ForEach(vm.offers) { offer in
-                        NEIPostRow(offer: offer)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 10)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .neiCardBackground()
+            // Każdy post jako osobny wiersz-karta — ten sam wygląd co w Activity → My Posts,
+            // z usuwaniem przez przesunięcie.
+            NEISectionHeader(title: "My Posts")
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .profileRow(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+
+            ForEach(vm.offers) { offer in
+                NEIPostRow(offer: offer)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .neiCardBackground()
+                    .profileRow(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            Task { await vm.deleteOffer(offer) }
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
                     }
-                }
             }
         }
     }
@@ -174,8 +211,8 @@ struct NEIProfileView: View {
                 }
                 if vm.reviews.count > 3 {
                     Divider()
-                    NavigationLink {
-                        NEIAllReviewsView(reviews: vm.reviews)
+                    Button {
+                        destination = .allReviews
                     } label: {
                         HStack {
                             Text("See All \(vm.reviews.count) Reviews")
@@ -204,11 +241,8 @@ struct NEIProfileView: View {
 
             Divider().padding(.leading, 52)
 
-            NavigationLink {
-                NEISavedOffersView(
-                    currentUserId: uid,
-                    currentUserName: vm.user?.displayName ?? authService.currentUser?.displayName ?? ""
-                )
+            Button {
+                destination = .savedOffers
             } label: {
                 NEISettingsRow(title: "Saved Offers", systemImage: "bookmark.fill", iconColor: Color.neiGreen, iconBackground: Color.neiGreenLight)
             }
@@ -216,8 +250,8 @@ struct NEIProfileView: View {
 
             Divider().padding(.leading, 52)
 
-            NavigationLink {
-                NEIGuidelinesView()
+            Button {
+                destination = .guidelines
             } label: {
                 NEISettingsRow(title: "Community Guidelines", systemImage: "hand.raised.fill", iconColor: Color(.systemGray), iconBackground: Color(.systemGray5))
             }
@@ -225,8 +259,8 @@ struct NEIProfileView: View {
 
             Divider().padding(.leading, 52)
 
-            NavigationLink {
-                NEISettingsView(vm: vm, userId: uid)
+            Button {
+                destination = .settings
             } label: {
                 NEISettingsRow(title: "Settings", systemImage: "gearshape.fill", iconColor: Color(.systemGray), iconBackground: Color(.systemGray5))
             }
@@ -234,8 +268,8 @@ struct NEIProfileView: View {
 
             Divider().padding(.leading, 52)
 
-            NavigationLink {
-                NEIBlockedUsersView(currentUserId: uid)
+            Button {
+                destination = .blockedUsers
             } label: {
                 NEISettingsRow(title: "Blocked Users", systemImage: "person.fill.xmark", iconColor: Color.neiRed, iconBackground: Color.neiRed.opacity(0.15))
             }
@@ -243,6 +277,16 @@ struct NEIProfileView: View {
         }
     }
 
+}
+
+private extension View {
+    /// Wiersz List bez tła i separatora — karta rysuje własne tło.
+    func profileRow(_ insets: EdgeInsets) -> some View {
+        self
+            .listRowInsets(insets)
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+    }
 }
 
 struct OfferRow: View {
