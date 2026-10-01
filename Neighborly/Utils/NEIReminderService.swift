@@ -20,14 +20,32 @@ enum NEIReminderService {
             .requestAuthorization(options: [.alert, .sound, .badge])) ?? false
     }
 
-    // Zastępuje wszystkie zaplanowane przypomnienia stanem z `transactions`
-    static func sync(transactions: [Transaction], userId: String) async {
+    // Kasuje wszystkie zaplanowane przypomnienia o zwrocie
+    static func cancelAll() async {
         let center = UNUserNotificationCenter.current()
         let pending = await center.pendingNotificationRequests()
         center.removePendingNotificationRequests(
             withIdentifiers: pending.map(\.identifier).filter { $0.hasPrefix(idPrefix) }
         )
+    }
 
+    // Pobiera transakcje od nowa i planuje przypomnienia — po włączeniu ich w ustawieniach,
+    // gdy żaden widok z listą transakcji nie jest załadowany
+    static func resync(userId: String) async {
+        let service = NEITransactionService()
+        async let inbox = try? service.fetchInbox(ownerId: userId)
+        async let requests = try? service.fetchMyRequests(requesterId: userId)
+        guard let inbox = await inbox, let requests = await requests else { return }
+        await sync(transactions: inbox + requests, userId: userId)
+    }
+
+    // Zastępuje wszystkie zaplanowane przypomnienia stanem z `transactions`.
+    // Przy wyłączonych przypomnieniach tylko czyści kolejkę.
+    static func sync(transactions: [Transaction], userId: String) async {
+        await cancelAll()
+        guard NEIUserPreferences.returnRemindersEnabled else { return }
+
+        let center = UNUserNotificationCenter.current()
         let settings = await center.notificationSettings()
         guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else { return }
 

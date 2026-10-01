@@ -53,9 +53,19 @@ final class NEIAuthService: ObservableObject {
         currentUser = nil
     }
 
+    /// Ponowne uwierzytelnienie hasłem — wołane przed `deleteAccount()`, bo Firebase Auth
+    /// odmawia usunięcia konta bez świeżego logowania, a dokument w Firestore kasujemy
+    /// pierwszy (po nieudanym `user.delete()` zostałoby konto bez profilu).
+    func reauthenticate(password: String) async throws {
+        guard let user = currentUser, let email = user.email else {
+            throw NSError(domain: "NEIAuthService", code: 0, userInfo: [NSLocalizedDescriptionKey: "No signed-in user."])
+        }
+        try await user.reauthenticate(with: EmailAuthProvider.credential(withEmail: email, password: password))
+    }
+
     /// Usuwa konto uzytkownika: dokument w Firestore, potem konto w Firebase Auth.
-    /// Firebase Auth wymaga swiezego zalogowania - jesli sie nie powiedzie, blad jest
-    /// propagowany dalej, zeby UI mogl poprosic o ponowne zalogowanie.
+    /// Wolac po `reauthenticate(password:)` — bez swiezego zalogowania `user.delete()`
+    /// sie nie powiedzie.
     func deleteAccount() async throws {
         guard let user = currentUser else {
             throw NSError(domain: "NEIAuthService", code: 0, userInfo: [NSLocalizedDescriptionKey: "No signed-in user."])

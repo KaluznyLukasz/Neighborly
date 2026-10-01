@@ -5,6 +5,8 @@ learning under `docs/learnings/`. Add with `/nei-learn`; promote recurring rules
 `CLAUDE.md` with `/nei-distill`.
 
 <!-- newest first -->
+- [sim-no-tap-use-launch-arg-hook](sim-no-tap-use-launch-arg-hook.md) — simctl can't tap; screenshot a deep screen via a temporary launch-arg branch in ContentView
+- [button-in-list-tints-primary-text-blue](button-in-list-tints-primary-text-blue.md) — Button label in a List row renders .primary/.secondary text accent blue; use Color(.label)/Color(.secondaryLabel)
 - [list-row-restyles-label-in-button](list-row-restyles-label-in-button.md) — Label in a Button inside a List row loses its title and stretches; use HStack { Image; Text }
 - [list-row-multiple-navigationlinks-fire-all](list-row-multiple-navigationlinks-fire-all.md) — several NavigationLinks in one List row all fire on one tap; use Buttons + .navigationDestination(item:)
 - [swipeactions-need-a-list](swipeactions-need-a-list.md) — .swipeActions does nothing in ScrollView/VStack; use a plain List with clear, separator-less rows

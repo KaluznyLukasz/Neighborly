@@ -5,37 +5,58 @@
 
 import SwiftUI
 import FirebaseAuth
+import UserNotifications
 
 struct NEISettingsView: View {
     @EnvironmentObject var authService: NEIAuthService
+    @Environment(LocationManager.self) private var locationManager
+    @Environment(\.openURL) private var openURL
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Bindable var vm: NEIProfileViewModel
     let userId: String
 
     @State private var showEditSheet = false
     @State private var showSignOutAlert = false
+    @State private var showPasswordResetAlert = false
     @State private var showDeleteAlert = false
-    @State private var deleteErrorMessage: String?
+    @State private var deletePassword = ""
     @State private var isDeleting = false
+    @State private var notice: Notice?
+    @State private var notificationStatus: UNAuthorizationStatus = .notDetermined
     @State private var searchRadiusKm: Double = NEIUserPreferences.searchRadiusKm
     @AppStorage("appearanceMode") private var appearanceMode: String = "system"
+    @AppStorage(NEIUserPreferences.returnRemindersKey) private var returnReminders = true
 
     private let radiusOptions: [Double] = [1, 3, 5, 10, 25, 50, 100, NEIUserPreferences.unlimitedRadiusKm]
 
+    private struct Notice {
+        let title: String
+        let message: String
+    }
+
     var body: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                accountCard
-                preferencesCard
-                signOutButton
-                aboutFooter
-            }
-            .padding(16)
+        List {
+            profileSection
+            neighborhoodSection
+            notificationsSection
+            appearanceSection
+            safetySection
+            accountSection
+            deleteSection
+            aboutSection
         }
-        .background(Color(.systemGroupedBackground))
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
+        .task { await refreshNotificationStatus() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { Task { await refreshNotificationStatus() } }
+        }
         .onChange(of: searchRadiusKm) { _, newValue in
             NEIUserPreferences.searchRadiusKm = newValue
+        }
+        .onChange(of: returnReminders) { _, enabled in
+            Task { await applyReminderPreference(enabled) }
         }
         .sheet(isPresented: $showEditSheet, onDismiss: {
             Task { await vm.load(userId: userId) }
@@ -51,142 +72,315 @@ struct NEISettingsView: View {
             Button("Sign Out", role: .destructive) { authService.signOut() }
             Button("Cancel", role: .cancel) {}
         }
-        .alert("Delete Account?", isPresented: $showDeleteAlert) {
-            Button("Delete", role: .destructive) {
-                Task { await deleteAccount() }
-            }
+        .alert("Reset password?", isPresented: $showPasswordResetAlert) {
+            Button("Send Link") { Task { await sendPasswordReset() } }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("This will permanently delete your account and profile. This action cannot be undone.")
+            Text("We'll email a reset link to \(accountEmail).")
         }
-        .alert("Couldn't Delete Account", isPresented: .init(
-            get: { deleteErrorMessage != nil },
-            set: { if !$0 { deleteErrorMessage = nil } }
-        )) {
-            Button("OK") { deleteErrorMessage = nil }
+        .alert("Delete Account?", isPresented: $showDeleteAlert) {
+            SecureField("Password", text: $deletePassword)
+                .textContentType(.password)
+            Button("Delete", role: .destructive) { Task { await deleteAccount() } }
+            Button("Cancel", role: .cancel) { deletePassword = "" }
         } message: {
-            Text(deleteErrorMessage ?? "")
+            Text("This permanently deletes your account and profile. Enter your password to confirm.")
+        }
+        .alert(notice?.title ?? "", isPresented: .init(
+            get: { notice != nil },
+            set: { if !$0 { notice = nil } }
+        ), presenting: notice) { _ in
+            Button("OK") {}
+        } message: { notice in
+            Text(notice.message)
         }
     }
 
-    private var accountCard: some View {
-        NEISectionCard(title: "Account") {
+    // MARK: - Sekcje
+
+    private var profileSection: some View {
+        Section {
             Button {
                 showEditSheet = true
             } label: {
-                NEISettingsRow(title: "Edit Profile", systemImage: "pencil", iconColor: Color.neiGreen, iconBackground: Color.neiGreenLight)
+                profileHeader
             }
-            .buttonStyle(.plain)
+            .accessibilityHint("Opens the profile editor")
+        }
+    }
 
-            Divider().padding(.leading, 52)
+    // Przy rozmiarach dostępności awatar ląduje nad tekstem — obok zostałby wąski pasek
+    private var profileHeader: some View {
+        let avatar = NEIAvatarView(
+            url: vm.user?.avatarURL,
+            name: displayName,
+            size: 60,
+            base64: vm.user?.avatarBase64
+        )
+        .accessibilityHidden(true)
 
+        let names = VStack(alignment: .leading, spacing: 2) {
+            Text(displayName)
+                .font(.title3)
+                .fontWeight(.semibold)
+                .foregroundStyle(Color(.label))
+            Text(accountEmail)
+                .font(.subheadline)
+                .foregroundStyle(Color(.secondaryLabel))
+        }
+
+        return Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 10) {
+                    avatar
+                    names
+                }
+            } else {
+                HStack(spacing: 14) {
+                    avatar
+                    names
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(Color(.tertiaryLabel))
+                        .accessibilityHidden(true)
+                }
+            }
+        }
+        .padding(.vertical, 4)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
+    }
+
+    private var neighborhoodSection: some View {
+        Section {
+            Picker(selection: $searchRadiusKm) {
+                ForEach(radiusOptions, id: \.self) { km in
+                    Text(radiusText(km)).tag(km)
+                }
+            } label: {
+                NEISettingsLabel(title: "Search Radius", systemImage: "mappin.and.ellipse", tint: Color.neiAmber)
+            }
+            .pickerStyle(.menu)
+            .accessibilityValue(searchRadiusKm.isInfinite ? "Any distance" : "\(Int(searchRadiusKm)) kilometers")
+
+            systemSettingRow(
+                title: "Location Access",
+                systemImage: "location.fill",
+                tint: .blue,
+                value: locationIsOn ? "On" : "Off"
+            ) {
+                if locationManager.authorizationStatus == .notDetermined {
+                    locationManager.requestPermission()
+                } else {
+                    openURL(URL(string: UIApplication.openSettingsURLString)!)
+                }
+            }
+        } header: {
+            Text("Neighborhood")
+        } footer: {
+            Text("The map, search and neighborhood alerts show what's within this distance of you.")
+        }
+    }
+
+    private var notificationsSection: some View {
+        Section {
+            Toggle(isOn: $returnReminders) {
+                NEISettingsLabel(title: "Return Reminders", systemImage: "alarm.fill", tint: Color.neiGreen)
+            }
+
+            systemSettingRow(
+                title: "Notifications",
+                systemImage: "bell.badge.fill",
+                tint: Color.neiRed,
+                value: notificationsAreOn ? "On" : "Off"
+            ) {
+                if notificationStatus == .notDetermined {
+                    Task {
+                        _ = await NEIReminderService.requestAuthorization()
+                        await refreshNotificationStatus()
+                    }
+                } else {
+                    openURL(URL(string: UIApplication.openNotificationSettingsURLString)!)
+                }
+            }
+        } header: {
+            Text("Notifications")
+        } footer: {
+            Text(remindersFooter)
+        }
+    }
+
+    private var appearanceSection: some View {
+        Section {
+            Picker(selection: $appearanceMode) {
+                Text("System").tag("system")
+                Text("Light").tag("light")
+                Text("Dark").tag("dark")
+            } label: {
+                NEISettingsLabel(title: "Appearance", systemImage: "circle.righthalf.filled", tint: .indigo)
+            }
+            .pickerStyle(.menu)
+        }
+    }
+
+    private var safetySection: some View {
+        Section("Privacy & Safety") {
+            NavigationLink {
+                NEIBlockedUsersView(currentUserId: userId)
+            } label: {
+                NEISettingsLabel(title: "Blocked Users", systemImage: "person.fill.xmark", tint: Color.neiRed)
+            }
+
+            NavigationLink {
+                NEIGuidelinesView()
+            } label: {
+                NEISettingsLabel(title: "Community Guidelines", systemImage: "hand.raised.fill", tint: Color(.systemGray))
+            }
+        }
+    }
+
+    private var accountSection: some View {
+        Section("Account") {
+            Button {
+                showPasswordResetAlert = true
+            } label: {
+                NEISettingsLabel(title: "Change Password", systemImage: "key.fill", tint: Color(.systemGray))
+                    .contentShape(Rectangle())
+            }
+            .disabled(accountEmail.isEmpty)
+
+            Button("Sign Out", role: .destructive) {
+                showSignOutAlert = true
+            }
+        }
+    }
+
+    private var deleteSection: some View {
+        Section {
             Button(role: .destructive) {
                 showDeleteAlert = true
             } label: {
-                NEISettingsRow(
-                    title: "Delete Account",
-                    systemImage: "trash",
-                    iconColor: Color.neiRed,
-                    iconBackground: Color.neiRed.opacity(0.15),
-                    showChevron: false
-                ) {
+                HStack {
+                    Text("Delete Account")
+                    Spacer()
                     if isDeleting { ProgressView() }
                 }
-                .foregroundStyle(Color.neiRed)
             }
-            .buttonStyle(.plain)
             .disabled(isDeleting)
+        } footer: {
+            Text("Permanently deletes your account and profile. This can't be undone.")
         }
     }
 
-    private var preferencesCard: some View {
-        NEISectionCard(title: "Preferences") {
-            NEISettingsRow(
-                title: "Search Radius",
-                systemImage: "location.circle.fill",
-                iconColor: Color.neiAmber,
-                iconBackground: Color.neiAmberLight,
-                showChevron: false
-            ) {
-                Picker("", selection: $searchRadiusKm) {
-                    ForEach(radiusOptions, id: \.self) { km in
-                        Text(km.isInfinite ? "Any distance" : "\(Int(km)) km").tag(km)
-                    }
-                }
-                .pickerStyle(.menu)
-                .tint(.secondary)
-                .accessibilityLabel("Search Radius")
-                .accessibilityValue(searchRadiusKm.isInfinite ? "Any distance" : "\(Int(searchRadiusKm)) kilometers")
-            }
-
-            Divider().padding(.leading, 52)
-
-            NEISettingsRow(
-                title: "Appearance",
-                systemImage: "circle.righthalf.filled",
-                iconColor: Color.neiAmber,
-                iconBackground: Color.neiAmberLight,
-                showChevron: false
-            ) {
-                Picker("", selection: $appearanceMode) {
-                    Text("System").tag("system")
-                    Text("Light").tag("light")
-                    Text("Dark").tag("dark")
-                }
-                .pickerStyle(.menu)
-                .tint(.secondary)
-            }
-
-            Divider().padding(.leading, 52)
-
-            Button {
-                if let url = URL(string: UIApplication.openSettingsURLString) {
-                    UIApplication.shared.open(url)
-                }
-            } label: {
-                NEISettingsRow(
-                    title: "Notifications",
-                    systemImage: "bell.fill",
-                    iconColor: Color.neiGreen,
-                    iconBackground: Color.neiGreenLight
-                )
-            }
-            .buttonStyle(.plain)
+    private var aboutSection: some View {
+        Section {
+            LabeledContent("Version", value: Bundle.main.appVersionString)
         }
     }
 
-    private var signOutButton: some View {
-        Button(role: .destructive) {
-            showSignOutAlert = true
-        } label: {
-            Text("Sign Out")
-                .font(.subheadline)
-                .fontWeight(.semibold)
-                .foregroundStyle(Color.neiRed)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .background(Color(.secondarySystemGroupedBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 14))
-                .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Color(.separator).opacity(0.6), lineWidth: 0.5))
+    // MARK: - Wiersz otwierający ustawienia systemowe
+
+    private func systemSettingRow(
+        title: String,
+        systemImage: String,
+        tint: Color,
+        value: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack {
+                NEISettingsLabel(title: title, systemImage: systemImage, tint: tint)
+                Spacer()
+                Text(value)
+                    .foregroundStyle(Color(.secondaryLabel))
+                Image(systemName: "arrow.up.forward")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Color(.tertiaryLabel))
+                    .accessibilityHidden(true)
+            }
+            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
     }
 
-    private var aboutFooter: some View {
-        Text("Neighborly · Version \(Bundle.main.appVersionString)")
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .padding(.top, 4)
+    // MARK: - Dane pochodne
+
+    private var displayName: String {
+        vm.user?.displayName ?? authService.currentUser?.displayName ?? ""
+    }
+
+    // Reset hasła idzie na adres z Firebase Auth, więc on ma pierwszeństwo przed dokumentem profilu
+    private var accountEmail: String {
+        authService.currentUser?.email ?? vm.user?.email ?? ""
+    }
+
+    private var locationIsOn: Bool {
+        locationManager.authorizationStatus == .authorizedWhenInUse
+            || locationManager.authorizationStatus == .authorizedAlways
+    }
+
+    private var notificationsAreOn: Bool {
+        switch notificationStatus {
+        case .authorized, .provisional, .ephemeral: true
+        default: false
+        }
+    }
+
+    private var remindersFooter: String {
+        if returnReminders && notificationStatus == .denied {
+            return "Notifications are off for Neighborly. Turn them on in Settings to get reminders."
+        }
+        return "Get a reminder the evening before and on the morning an item is due back."
+    }
+
+    private func radiusText(_ km: Double) -> String {
+        km.isInfinite ? "Any distance" : "\(Int(km)) km"
+    }
+
+    // MARK: - Akcje
+
+    private func refreshNotificationStatus() async {
+        notificationStatus = await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
+    }
+
+    private func applyReminderPreference(_ enabled: Bool) async {
+        if enabled {
+            _ = await NEIReminderService.requestAuthorization()
+            await NEIReminderService.resync(userId: userId)
+        } else {
+            await NEIReminderService.cancelAll()
+        }
+        await refreshNotificationStatus()
+    }
+
+    private func sendPasswordReset() async {
+        let email = accountEmail
+        do {
+            try await authService.sendPasswordReset(email: email)
+            notice = Notice(title: "Check Your Email", message: "We sent a reset link to \(email).")
+        } catch {
+            notice = Notice(title: "Couldn't Send Link", message: error.localizedDescription)
+        }
     }
 
     private func deleteAccount() async {
+        let password = deletePassword
+        deletePassword = ""
         isDeleting = true
+        defer { isDeleting = false }
         do {
+            try await authService.reauthenticate(password: password)
             try await authService.deleteAccount()
         } catch {
-            deleteErrorMessage = "\(error.localizedDescription) You may need to sign in again before deleting your account."
+            notice = Notice(title: "Couldn't Delete Account", message: deleteErrorMessage(for: error))
         }
-        isDeleting = false
+    }
+
+    private func deleteErrorMessage(for error: Error) -> String {
+        switch AuthErrorCode(rawValue: (error as NSError).code) {
+        case .wrongPassword, .invalidCredential: "That password isn't right."
+        default: error.localizedDescription
+        }
     }
 }
 
