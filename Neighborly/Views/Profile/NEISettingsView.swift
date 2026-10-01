@@ -26,7 +26,7 @@ struct NEISettingsView: View {
     @State private var notificationStatus: UNAuthorizationStatus = .notDetermined
     @State private var searchRadiusKm: Double = NEIUserPreferences.searchRadiusKm
     @AppStorage("appearanceMode") private var appearanceMode: String = "system"
-    @AppStorage(NEIUserPreferences.returnRemindersKey) private var returnReminders = true
+    @AppStorage(NEIUserPreferences.remindersKey) private var remindersOn = true
 
     private let radiusOptions: [Double] = [1, 3, 5, 10, 25, 50, 100, NEIUserPreferences.unlimitedRadiusKm]
 
@@ -55,7 +55,7 @@ struct NEISettingsView: View {
         .onChange(of: searchRadiusKm) { _, newValue in
             NEIUserPreferences.searchRadiusKm = newValue
         }
-        .onChange(of: returnReminders) { _, enabled in
+        .onChange(of: remindersOn) { _, enabled in
             Task { await applyReminderPreference(enabled) }
         }
         .sheet(isPresented: $showEditSheet, onDismiss: {
@@ -185,8 +185,8 @@ struct NEISettingsView: View {
 
     private var notificationsSection: some View {
         Section {
-            Toggle(isOn: $returnReminders) {
-                NEISettingsLabel(title: "Return Reminders", systemImage: "alarm.fill", tint: Color.neiGreen)
+            Toggle(isOn: $remindersOn) {
+                NEISettingsLabel(title: "Reminders", systemImage: "alarm.fill", tint: Color.neiGreen)
             }
 
             systemSettingRow(
@@ -327,10 +327,10 @@ struct NEISettingsView: View {
     }
 
     private var remindersFooter: String {
-        if returnReminders && notificationStatus == .denied {
+        if remindersOn && notificationStatus == .denied {
             return "Notifications are off for Neighborly. Turn them on in Settings to get reminders."
         }
-        return "Get a reminder the evening before and on the morning something is due back."
+        return "Get a reminder the evening before and on the morning of a return date or planned day."
     }
 
     private func radiusText(_ km: Double) -> String {

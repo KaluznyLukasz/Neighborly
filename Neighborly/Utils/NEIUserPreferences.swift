@@ -18,9 +18,9 @@ enum NEIUserPreferences {
     }
 
     // Klucz współdzielony z @AppStorage w ustawieniach; domyślnie włączone
-    static let returnRemindersKey = "returnRemindersEnabled"
+    static let remindersKey = "remindersEnabled"
 
-    static var returnRemindersEnabled: Bool {
-        UserDefaults.standard.object(forKey: returnRemindersKey) as? Bool ?? true
+    static var remindersEnabled: Bool {
+        UserDefaults.standard.object(forKey: remindersKey) as? Bool ?? true
     }
 }

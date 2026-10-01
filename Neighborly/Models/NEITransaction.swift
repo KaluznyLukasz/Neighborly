@@ -36,6 +36,12 @@ enum TransactionStatus: String, Codable {
     }
 }
 
+// Co znaczy termin przy transakcji: zwrot pożyczonej rzeczy albo umówiony dzień
+// (naprawa, pomoc, jedzenie, usługa). Od tego zależą teksty i to, czy termin może być "po terminie".
+enum TransactionDateKind {
+    case returnDate, plannedDate
+}
+
 struct Transaction: Identifiable, Codable {
     @DocumentID var id: String?
     var offerId: String
@@ -43,15 +49,21 @@ struct Transaction: Identifiable, Codable {
     var requesterId: String
     var requesterName: String
     var ownerId: String
+    // nil w transakcjach sprzed dodania pola — wtedy termin traktujemy jak zwrot, tak jak dotąd
+    var offerCategory: OfferCategory?
     var status: TransactionStatus
     var message: String?
-    // Termin zwrotu ustawia właściciel po zaakceptowaniu; nil = bez terminu
+    // Termin ustawia właściciel po zaakceptowaniu; nil = bez terminu
     var dueDate: Date?
     var createdAt: Date
     var updatedAt: Date
 
+    var dateKind: TransactionDateKind {
+        offerCategory == nil || offerCategory == .items ? .returnDate : .plannedDate
+    }
+
     var isOverdue: Bool {
-        guard status == .accepted, let dueDate else { return false }
+        guard status == .accepted, dateKind == .returnDate, let dueDate else { return false }
         return dueDate < Calendar.current.startOfDay(for: Date())
     }
 }

@@ -183,7 +183,9 @@ private struct TransactionRow: View {
                 }
                 if transaction.status == .accepted, let dueDate = transaction.dueDate {
                     Label(
-                        transaction.isOverdue ? "Overdue · \(dueDate.formatted(.dateTime.day().month()))" : "Return by \(dueDate.formatted(.dateTime.day().month()))",
+                        transaction.isOverdue
+                            ? "Overdue · \(dueDate.formatted(.dateTime.day().month()))"
+                            : "\(transaction.dateKind == .returnDate ? "Return by" : "Planned for") \(dueDate.formatted(.dateTime.day().month()))",
                         systemImage: transaction.isOverdue ? "exclamationmark.triangle.fill" : "calendar"
                     )
                     .font(.caption)
