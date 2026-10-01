@@ -17,11 +17,21 @@ struct NEITransactionDetailView: View {
     @State private var showChatSheet = false
     @State private var showProfileSheet = false
     @State private var canReview = false
+    @State private var otherUser: NEIUser?
+    // Wysokość treści — arkusz dopasowuje się do niej zamiast zostawiać pustą przestrzeń
+    @State private var contentHeight: CGFloat = 480
     @Environment(\.dismiss) private var dismiss
+
+    // Pasek nawigacji arkusza + dolny safe area; treść mierzymy bez nich
+    private let sheetChromeHeight: CGFloat = 76
 
     private let reviewService = NEIReviewService()
     private var isOwner: Bool { transaction.ownerId == currentUserId }
     private var otherPartyId: String { isOwner ? transaction.requesterId : transaction.ownerId }
+    // Nazwa wolontariusza jest w transakcji, więc widać ją od razu; właściciela dociągamy z profilu
+    private var otherPartyName: String {
+        otherUser?.displayName ?? (isOwner ? transaction.requesterName : "Owner")
+    }
 
     init(transaction: Transaction, currentUserId: String, currentUserName: String, vm: NEITransactionViewModel) {
         self.transaction = transaction
@@ -35,33 +45,31 @@ struct NEITransactionDetailView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    statusCard
-                    detailCard
+                VStack(alignment: .leading, spacing: 24) {
+                    header
 
-                    if status == .accepted {
-                        returnCard
-                    }
+                    otherPartySection
 
                     if let message = transaction.message {
-                        messageCard(message)
+                        messageSection(message)
+                    }
+
+                    if status == .accepted {
+                        returnSection
+                    }
+
+                    if status == .completed && !canReview {
+                        Label("You reviewed this job", systemImage: "checkmark.circle.fill")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
                     }
 
                     actionButtons
-
-                    if status == .completed {
-                        if canReview {
-                            NEIPrimaryButton("Leave a Review") {
-                                showReviewSheet = true
-                            }
-                        } else {
-                            Label("You reviewed this job", systemImage: "checkmark.circle.fill")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
                 }
-                .padding(20)
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+                .padding(.bottom, 24)
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 }
             }
             .background(Color(.systemGroupedBackground).ignoresSafeArea())
             .navigationTitle("Application")
@@ -77,6 +85,7 @@ struct NEITransactionDetailView: View {
                         Image(systemName: "message.fill")
                     }
                     .tint(Color.green)
+                    .accessibilityLabel("Chat")
                 }
             }
             .navigationDestination(isPresented: $showChatSheet) {
@@ -96,6 +105,9 @@ struct NEITransactionDetailView: View {
             .navigationDestination(isPresented: $showProfileSheet) {
                 NEIUserProfileView(userId: otherPartyId)
             }
+            .task(id: otherPartyId) {
+                otherUser = await NEIUserCache.shared.user(id: otherPartyId)
+            }
             .task {
                 if status == .completed {
                     canReview = (try? await reviewService.hasReviewed(
@@ -108,61 +120,96 @@ struct NEITransactionDetailView: View {
                 }
             }
         }
-        .presentationDetents([.medium, .large])
+        .presentationDetents([.height(contentHeight + sheetChromeHeight), .large])
         .presentationDragIndicator(.visible)
     }
 
-    private var statusCard: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(transaction.offerTitle)
-                    .font(.headline)
-                Text(transaction.createdAt, style: .date)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+    // MARK: - Header
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                if let category = transaction.offerCategory {
+                    NEICategoryBadge(category: category)
+                }
+                Spacer()
+                NEIStatusBadge(status: status)
             }
-            Spacer()
-            NEIStatusBadge(status: status)
+            Text(transaction.offerTitle)
+                .font(.title2)
+                .fontWeight(.bold)
+            Text("Applied \(transaction.createdAt.formatted(.relative(presentation: .named)))")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
         }
-        .padding(16)
-        .background(Color(.systemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
-    private var detailCard: some View {
+    // MARK: - Other party
+
+    private var otherPartySection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            if isOwner {
-                Button {
-                    showProfileSheet = true
-                } label: {
-                    HStack {
-                        Label("Volunteer: \(transaction.requesterName)", systemImage: "person.fill")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        Image(systemName: "chevron.right")
+            NEISectionLabel(isOwner ? "Volunteer" : "Posted by")
+            Button {
+                showProfileSheet = true
+            } label: {
+                HStack(spacing: 12) {
+                    NEIAvatarView(
+                        url: otherUser?.avatarURL,
+                        name: otherPartyName,
+                        size: 44,
+                        base64: otherUser?.avatarBase64
+                    )
+                    .accessibilityHidden(true)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(otherPartyName)
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                        Text("View profile")
                             .font(.caption)
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(.secondary)
                     }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                        .accessibilityHidden(true)
                 }
-                .buttonStyle(.plain)
-            } else {
-                Label("Your application", systemImage: "person.fill")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                .padding(14)
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+            .cardStyle()
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.systemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
+
+    // MARK: - Message
+
+    private func messageSection(_ msg: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            NEISectionLabel("Message")
+            Text(msg)
+                .font(.body)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(14)
+                .cardStyle()
+        }
+    }
+
+    // MARK: - Return / date
 
     private var isReturn: Bool { transaction.dateKind == .returnDate }
 
     private var isOverdue: Bool {
         guard status == .accepted, isReturn, let dueDate else { return false }
         return dueDate < Calendar.current.startOfDay(for: Date())
+    }
+
+    private var returnSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            NEISectionLabel(isReturn ? "Return" : "Date")
+            returnCard
+        }
     }
 
     private var returnCard: some View {
@@ -206,10 +253,9 @@ struct NEITransactionDetailView: View {
                     .foregroundStyle(.red)
             }
         }
-        .padding(16)
+        .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.systemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .cardStyle()
     }
 
     private func setDueDate(_ new: Date?) {
@@ -217,26 +263,13 @@ struct NEITransactionDetailView: View {
         Task { await vm.setDueDate(transaction: transaction, dueDate: new) }
     }
 
-    private func messageCard(_ msg: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Message")
-                .font(.caption)
-                .fontWeight(.medium)
-                .foregroundStyle(.secondary)
-            Text(msg)
-                .font(.subheadline)
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.systemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-    }
+    // MARK: - Actions
 
     @ViewBuilder
     private var actionButtons: some View {
         switch status {
         case .pending where isOwner:
-            VStack(spacing: 10) {
+            VStack(spacing: 4) {
                 NEIPrimaryButton("Accept Volunteer") {
                     Task { await vm.accept(transaction: transaction); dismiss() }
                 }
@@ -244,11 +277,9 @@ struct NEITransactionDetailView: View {
                     Task { await vm.reject(transaction: transaction); dismiss() }
                 } label: {
                     Text("Decline")
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 52)
-                        .background(Color.red.opacity(0.1))
+                        .font(.body)
                         .foregroundStyle(.red)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .frame(maxWidth: .infinity, minHeight: 44)
                 }
             }
 
@@ -267,11 +298,17 @@ struct NEITransactionDetailView: View {
                 Task { await vm.cancel(transaction: transaction); dismiss() }
             } label: {
                 Text("Cancel Application")
+                    .font(.headline)
                     .frame(maxWidth: .infinity)
                     .frame(height: 52)
-                    .background(Color.red.opacity(0.1))
+                    .background(Color.red.opacity(0.12))
                     .foregroundStyle(.red)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
+            }
+
+        case .completed where canReview:
+            NEIPrimaryButton("Leave a Review") {
+                showReviewSheet = true
             }
 
         default:
