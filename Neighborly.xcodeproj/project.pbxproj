@@ -295,6 +295,7 @@
 				DEVELOPMENT_TEAM = 8L27R45F5T;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Neighborly-Info.plist";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Neighborly uses your location to show offers and alerts from neighbors nearby.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Neighborly uses your location to show offers and alerts from neighbors nearby.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -329,6 +330,7 @@
 				DEVELOPMENT_TEAM = 8L27R45F5T;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Neighborly-Info.plist";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Neighborly uses your location to show offers and alerts from neighbors nearby.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Neighborly uses your location to show offers and alerts from neighbors nearby.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

@@ -47,7 +47,7 @@ Verified working end-to-end from a fully clean `DerivedData`, single pass, no ma
 
 Early-stage iOS app (SwiftUI + Firebase iOS SDK 12.13.0).
 
-**Entry point:** `NeighborlyApp.swift` — uses `UIApplicationDelegateAdaptor` to wire `AppDelegate` for `FirebaseApp.configure()` at launch.
+**Entry point:** `NeighborlyApp.swift` — `FirebaseApp.configure()` runs in `NeighborlyApp.init()` (not the AppDelegate: `.backgroundTask` builds the scene before launch finishes). `AppDelegate` sets the notification delegate (`NEINotificationRouter`).
 
 **Data layer:** Firebase Firestore. Direct `Firestore.firestore()` calls currently live in views; no repository/service layer yet.
 

@@ -282,7 +282,6 @@ struct NEIDueDateCard: View {
                     let tomorrow = calendar.date(byAdding: .day, value: 1, to: today) ?? today
                     onChange(tomorrow, false)
                     withAnimation(.snappy) { expanded = .date }
-                    Task { await askForPermissionIfNeeded() }
                 } else {
                     onChange(nil, false)
                     withAnimation(.snappy) { expanded = nil }
@@ -352,12 +351,6 @@ struct NEIDueDateCard: View {
 
     private func refreshNotificationStatus() async {
         notificationStatus = await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
-    }
-
-    // Systemowe pytanie o zgodę pojawia się w chwili ustawienia terminu, gdy widać, po co jest
-    private func askForPermissionIfNeeded() async {
-        guard remindersOn, notificationStatus == .notDetermined else { return }
-        await requestFullAuthorization()
     }
 
     // Gdy system już nie pyta (np. po cichej zgodzie), zostają ustawienia powiadomień

@@ -33,14 +33,14 @@ final class NEIAlertViewModel {
             errorMessage = nil
             listener = alertService.listenActive(
                 onChange: { [weak self] alerts in
-                    Task { @MainActor in
+                    Task { @MainActor [weak self] in
                         self?.all = alerts
                         self?.isLoading = false
                         self?.refilter()
                     }
                 },
                 onError: { [weak self] error in
-                    Task { @MainActor in
+                    Task { @MainActor [weak self] in
                         self?.isLoading = false
                         self?.errorMessage = error.localizedDescription
                     }

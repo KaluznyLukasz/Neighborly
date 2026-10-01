@@ -3,13 +3,15 @@
 //  Neighborly
 //
 
+import BackgroundTasks
 import Foundation
+import FirebaseAuth
 import UserNotifications
 
 // Lokalne przypomnienia o terminie transakcji (zwrot rzeczy albo umówiony dzień). Każde
-// urządzenie planuje je samo dla transakcji, w których uczestniczy — bez backendu. Druga strona
-// dostaje przypomnienie po otwarciu aplikacji (przy synchronizacji, też po powrocie z tła),
-// więc termin ustawiony przez właściciela dociera z opóźnieniem.
+// urządzenie planuje je samo dla transakcji, w których uczestniczy — bez backendu. Termin
+// ustawiony przez drugą stronę dociera przy otwarciu aplikacji, po powrocie z tła albo
+// w odświeżaniu w tle (co najmniej co kilka godzin, kiedy system na to pozwoli).
 enum NEIReminderService {
     // Prefiks zostaje "return-" — tak nazywały się przypomnienia z pierwszej wersji, więc
     // synchronizacja sprząta też te stare
@@ -30,6 +32,9 @@ enum NEIReminderService {
         let fireDate: Date
     }
 
+    nonisolated static let backgroundRefreshId = "app.me.kaluzny.lukasz.Neighborly.reminders"
+    private static let backgroundRefreshInterval: TimeInterval = 2 * 60 * 60
+
     // Kolejne synchronizacje czekają na poprzednią — dwa równoległe sync (np. ContentView
     // i lista transakcji) przeplatałyby kasowanie i dodawanie
     private static var lastOperation: Task<Void, Never>?
@@ -37,6 +42,16 @@ enum NEIReminderService {
     static func requestAuthorization() async -> Bool {
         (try? await UNUserNotificationCenter.current()
             .requestAuthorization(options: [.alert, .sound, .badge])) ?? false
+    }
+
+    // Pełne pytanie o zgodę, gdy jeszcze go nie było (albo jest tylko cicha zgoda). W kolejce
+    // razem z synchronizacją, więc ta poczeka na odpowiedź i nie poprosi w tym czasie o cichą zgodę.
+    static func requestAuthorizationIfNeeded() async {
+        await serialized {
+            let status = await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
+            guard status == .notDetermined || status == .provisional else { return }
+            _ = await requestAuthorization()
+        }
     }
 
     static func notificationsAllowed() async -> Bool {
@@ -66,13 +81,36 @@ enum NEIReminderService {
         await sync(transactions: inbox + requests, userId: userId)
     }
 
+    // MARK: - Odświeżanie w tle
+
+    // Zgłasza kolejne odświeżenie; system sam wybiera chwilę, nie wcześniej niż za 2 h.
+    // Ponowne zgłoszenie zastępuje poprzednie.
+    static func scheduleBackgroundRefresh() {
+        let request = BGAppRefreshTaskRequest(identifier: backgroundRefreshId)
+        request.earliestBeginDate = Date(timeIntervalSinceNow: backgroundRefreshInterval)
+        try? BGTaskScheduler.shared.submit(request)
+    }
+
+    // Wywoływane przez system w tle: planuje następne odświeżenie i synchronizuje przypomnienia
+    // z Firestore — żeby nie przyszło przypomnienie o transakcji, którą druga strona już zamknęła
+    static func refreshInBackground() async {
+        scheduleBackgroundRefresh()
+        guard let userId = Auth.auth().currentUser?.uid else { return }
+        await resync(userId: userId)
+    }
+
     // Zastępuje wszystkie zaplanowane przypomnienia stanem z `transactions` i zdejmuje z centrum
     // powiadomień te, których transakcja już się skończyła. Przy wyłączonych przypomnieniach
     // tylko czyści kolejkę.
     static func sync(transactions: [Transaction], userId: String) async {
         await serialized {
             let center = UNUserNotificationCenter.current()
-            let planned = NEIUserPreferences.remindersEnabled ? plan(for: transactions, userId: userId) : []
+            // Synchronizacja, która skończyła się po wylogowaniu (albo dla poprzedniego konta),
+            // nie może zaplanować cudzych przypomnień — wtedy tylko czyści
+            let isCurrentUser = Auth.auth().currentUser?.uid == userId
+            let planned = NEIUserPreferences.remindersEnabled && isCurrentUser
+                ? plan(for: transactions, userId: userId)
+                : []
             // Wolontariusz nigdy nie ustawia terminu, więc nikt go nie zapytał o zgodę. Cicha
             // (provisional) zgoda nie pokazuje pytania, a przypomnienia trafiają do centrum
             // powiadomień; pełną zgodę proponuje karta terminu.
@@ -87,7 +125,7 @@ enum NEIReminderService {
                 try? await center.add(request(for: reminder))
             }
 
-            let active = Set(transactions.filter { $0.status == .accepted && $0.dueDate != nil }.compactMap(\.id))
+            let active = !isCurrentUser ? [] : Set(transactions.filter { $0.status == .accepted && $0.dueDate != nil }.compactMap(\.id))
             let stale = await center.deliveredNotifications().filter { notification in
                 guard isReminderId(notification.request.identifier) else { return false }
                 let id = notification.request.content.userInfo[transactionIdKey] as? String

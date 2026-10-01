@@ -49,6 +49,7 @@ struct ContentView: View {
     @State private var locationManager = LocationManager()
     @State private var showSplash = true
     @State private var selectedTab: NEITab = .map
+    @State private var wasInBackground = false
     private let notificationRouter = NEINotificationRouter.shared
     @AppStorage("appearanceMode") private var appearanceMode: String = "system"
 
@@ -95,8 +96,15 @@ struct ContentView: View {
                 .environment(locationManager)
                 .task { await loadTransactions() }
                 // Po powrocie z tła: świeży badge i przypomnienia z terminami ustawionymi w międzyczasie
-                .onChange(of: scenePhase) { old, phase in
-                    if old == .background && phase == .active { Task { await loadTransactions() } }
+                // (z tła aplikacja przechodzi przez .inactive, więc pamiętamy, że była w tle)
+                .onChange(of: scenePhase) { _, phase in
+                    if phase == .background {
+                        wasInBackground = true
+                        NEIReminderService.scheduleBackgroundRefresh()
+                    } else if phase == .active && wasInBackground {
+                        wasInBackground = false
+                        Task { await loadTransactions() }
+                    }
                 }
                 // Tapnięte przypomnienie otwiera Activity; szczegóły otwiera już lista
                 .onChange(of: notificationRouter.pendingTransactionId, initial: true) { _, id in
@@ -113,6 +121,8 @@ struct ContentView: View {
         .onChange(of: authService.isAuthenticated) { _, isAuthenticated in
             if !isAuthenticated {
                 selectedTab = .map
+                // Nowy view model: listy i badge poprzedniego konta nie przechodzą na następne
+                transactionVM = NEITransactionViewModel()
                 Task { await NEIReminderService.cancelAll() }
             }
         }

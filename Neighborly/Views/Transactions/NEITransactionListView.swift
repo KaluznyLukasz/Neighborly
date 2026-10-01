@@ -64,21 +64,27 @@ struct NEITransactionListView: View {
             .task {
                 await loadAll()
                 hasLoaded = true
-                await openPendingTransaction()
+                await openPendingTransaction(reload: false)
             }
             .onChange(of: notificationRouter.pendingTransactionId) {
-                Task { await openPendingTransaction() }
+                Task { await openPendingTransaction(reload: true) }
             }
         }
     }
 
-    // Otwiera transakcję z tapniętego przypomnienia. Pobiera ją od nowa, bo lista mogła
-    // się zestarzeć, gdy aplikacja była w tle.
-    private func openPendingTransaction() async {
+    // Otwiera transakcję z tapniętego przypomnienia. Listy pobieramy od nowa, bo mogły się
+    // zestarzeć, gdy aplikacja była w tle — a szczegóły czytają termin z list.
+    private func openPendingTransaction(reload: Bool) async {
         guard hasLoaded, let id = notificationRouter.pendingTransactionId else { return }
         notificationRouter.pendingTransactionId = nil
-        let fresh = try? await NEITransactionService().fetchTransaction(id: id)
-        guard let transaction = fresh ?? vm.current(id: id) else { return }
+        if reload { await loadAll() }
+        let transaction: Transaction?
+        if let listed = vm.current(id: id) {
+            transaction = listed
+        } else {
+            transaction = try? await NEITransactionService().fetchTransaction(id: id)
+        }
+        guard let transaction else { return }
         selectedTab = transaction.ownerId == uid ? 0 : 1
         selectedTransaction = transaction
     }

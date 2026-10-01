@@ -104,6 +104,15 @@ struct NEITransactionDetailView: View {
                     revieweeId: otherPartyId
                 ) { dismiss() }
             }
+            // Alert listy jest pod arkuszem i się nie pokaże — błędy zapisu pokazujemy tutaj
+            .alert("Something Went Wrong", isPresented: Binding(
+                get: { vm.errorMessage != nil },
+                set: { if !$0 { vm.errorMessage = nil } }
+            )) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(vm.errorMessage ?? "")
+            }
             .navigationDestination(isPresented: $showProfileSheet) {
                 NEIUserProfileView(userId: otherPartyId)
             }
@@ -208,17 +217,26 @@ struct NEITransactionDetailView: View {
                 dateKind: transaction.dateKind,
                 isOwner: isOwner,
                 userId: currentUserId,
-                dueDate: dueDate,
-                hasTime: dueHasTime,
+                dueDate: due.date,
+                hasTime: due.hasTime,
                 onChange: setDueDate
             )
         }
     }
 
+    // Termin czytamy z view modelu, więc po nieudanym zapisie karta wraca do poprzedniej
+    // wartości. Lokalna kopia tylko dla transakcji, której nie ma na listach.
+    private var due: (date: Date?, hasTime: Bool) {
+        if let id = transaction.id, let live = vm.current(id: id) {
+            return (live.dueDate, live.hasDueTime)
+        }
+        return (dueDate, dueHasTime)
+    }
+
     private func setDueDate(_ new: Date?, hasTime: Bool) {
         dueDate = new
         dueHasTime = new != nil && hasTime
-        Task { await vm.setDueDate(transaction: transaction, dueDate: new, hasTime: hasTime) }
+        vm.setDueDate(transaction: transaction, dueDate: new, hasTime: hasTime)
     }
 
     // MARK: - Actions

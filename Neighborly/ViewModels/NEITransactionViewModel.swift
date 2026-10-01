@@ -22,6 +22,8 @@ final class NEITransactionViewModel {
     private var userId: String?
     private var hasLoadedInbox = false
     private var hasLoadedRequests = false
+    // Licznik zmian terminu na transakcję — cofamy tylko ostatnią nieudaną
+    private var dueDateEdits: [String: Int] = [:]
 
     func loadInbox(ownerId: String) async {
         isLoading = true
@@ -68,25 +70,40 @@ final class NEITransactionViewModel {
         await updateStatus(transaction: transaction, status: .cancelled)
     }
 
-    // dueDate == nil czyści termin. Lista aktualizuje się od razu, zapis idzie w tle;
-    // błąd zapisu cofa lokalną zmianę.
-    func setDueDate(transaction: Transaction, dueDate: Date?, hasTime: Bool) async {
+    // dueDate == nil czyści termin. Zmiana działa od razu: listy, karta i przypomnienia
+    // aktualizują się natychmiast, a zapis idzie w tle. Nie czekamy na zapis, bo offline
+    // Firestore kończy go dopiero po powrocie sieci. Błąd zapisu cofa zmianę, chyba że
+    // w międzyczasie przyszła nowsza.
+    func setDueDate(transaction: Transaction, dueDate: Date?, hasTime: Bool) {
         guard let id = transaction.id else { return }
         errorMessage = nil
         let hasTime = dueDate != nil && hasTime
         let previous = current(id: id) ?? transaction
+        let edit = (dueDateEdits[id] ?? 0) + 1
+        dueDateEdits[id] = edit
         apply(id: id) {
             $0.dueDate = dueDate
             $0.dueHasTime = dueDate == nil ? nil : hasTime
         }
-        do {
-            try await transactionService.setDueDate(transactionId: id, dueDate: dueDate, hasTime: hasTime)
+
+        Task {
+            // Pytamy o zgodę, gdy właściciel ustawia termin i widać, po co ona jest.
+            // Przed synchronizacją, żeby ta nie zdążyła poprosić o cichą zgodę.
+            if dueDate != nil { await NEIReminderService.requestAuthorizationIfNeeded() }
             await syncReminders()
-        } catch {
-            errorMessage = error.localizedDescription
-            apply(id: id) {
-                $0.dueDate = previous.dueDate
-                $0.dueHasTime = previous.dueHasTime
+        }
+
+        Task {
+            do {
+                try await transactionService.setDueDate(transactionId: id, dueDate: dueDate, hasTime: hasTime)
+            } catch {
+                guard dueDateEdits[id] == edit else { return }
+                errorMessage = error.localizedDescription
+                apply(id: id) {
+                    $0.dueDate = previous.dueDate
+                    $0.dueHasTime = previous.dueHasTime
+                }
+                await syncReminders()
             }
         }
     }
