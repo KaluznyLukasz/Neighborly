@@ -45,7 +45,7 @@ struct NEIDueDateCard: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color(.secondarySystemGroupedBackground), in: .rect(cornerRadius: 14))
+            .cardStyle()
 
             footer
                 .padding(.horizontal, 4)
