@@ -11,7 +11,7 @@ learning under `docs/learnings/`. Add with `/nei-learn`; promote recurring rules
 - [derived-data-per-checkout](derived-data-per-checkout.md) — each worktree has its own DerivedData (MD5 of project path); use scripts/derived-data.sh, never a Neighborly-* glob
 - [push-inside-sheet-pin-primary-action](push-inside-sheet-pin-primary-action.md) — view pushed inside a .medium sheet keeps the detent; pin its main button with safeAreaInset, push instead of sheet-on-sheet
 - [sim-no-tap-use-launch-arg-hook](sim-no-tap-use-launch-arg-hook.md) — simctl can't tap; screenshot a deep screen via a temporary launch-arg branch in ContentView
-- [button-in-list-tints-primary-text-blue](button-in-list-tints-primary-text-blue.md) — Button label in a List row renders .primary/.secondary text accent blue; use Color(.label)/Color(.secondaryLabel)
+- [button-in-list-tints-primary-text-blue](button-in-list-tints-primary-text-blue.md) — any Button label renders .primary/.secondary text in the tint color (List rows included); use Color(.label)/Color(.secondaryLabel)
 - [list-row-restyles-label-in-button](list-row-restyles-label-in-button.md) — Label in a Button inside a List row loses its title and stretches; use HStack { Image; Text }
 - [list-row-multiple-navigationlinks-fire-all](list-row-multiple-navigationlinks-fire-all.md) — several NavigationLinks in one List row all fire on one tap; use Buttons + .navigationDestination(item:)
 - [swipeactions-need-a-list](swipeactions-need-a-list.md) — .swipeActions does nothing in ScrollView/VStack; use a plain List with clear, separator-less rows
