@@ -50,7 +50,7 @@ Early-stage iOS app (SwiftUI + Firebase iOS SDK 12.13.0).
 
 **Entry point:** `NeighborlyApp.swift` — `FirebaseApp.configure()` runs in `NeighborlyApp.init()` (not the AppDelegate: `.backgroundTask` builds the scene before launch finishes). `AppDelegate` sets the notification delegate (`NEINotificationRouter`).
 
-**Data layer:** Firebase Firestore. Direct `Firestore.firestore()` calls currently live in views; no repository/service layer yet.
+**Data layer:** Firebase Firestore. Views stay off Firestore: `Neighborly/Services/` holds one `NEI*Service` per collection, `@Observable` view models in `Neighborly/ViewModels/` call them. `NEIProfileViewModel` and `NEIUserCache` still read Firestore directly. Photos and avatars are base64 strings in the documents; `NEIStorageService` (Firebase Storage) exists but nothing calls it.
 
 **Notifications:** all local, no push backend. `NEIReminderService` (transaction due dates), `NEIAlertNotifier` (new nearby alerts + alert chat replies) and `NEINotificationRouter` (tap → screen). They run on Firestore listeners while the app is open and on `BGAppRefreshTask` (`refreshInBackground`) when it's closed.
 
