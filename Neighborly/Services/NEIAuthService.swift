@@ -8,6 +8,20 @@ import Combine
 import FirebaseAuth
 import FirebaseFirestore
 
+/// `updateEmail(to:)` jest oznaczone jako przestarzałe, bo Firebase woli link weryfikacyjny.
+/// Celowo zmieniamy e-mail samym hasłem, więc wołamy je przez ten protokół, żeby każdy
+/// build nie sypał ostrzeżeniem. Jeśli SDK usunie metodę, build tu padnie.
+private protocol DirectEmailUpdating {
+    func updateEmail(to email: String) async throws
+}
+
+extension FirebaseAuth.User: DirectEmailUpdating {}
+
+enum EmailChangeResult {
+    case changed
+    case verificationSent
+}
+
 @MainActor
 final class NEIAuthService: ObservableObject {
     @Published var currentUser: FirebaseAuth.User?
@@ -76,14 +90,23 @@ final class NEIAuthService: ObservableObject {
         currentUser = nil
     }
 
-    /// Firebase nie zmienia e-maila od ręki: wysyła link na nowy adres i przełącza konto
-    /// dopiero po jego kliknięciu (unieważniając sesję). Wymaga świeżego logowania —
-    /// przy `.requiresRecentLogin` zawołaj najpierw `reauthenticate(password:)`.
-    func requestEmailChange(to email: String) async throws {
+    /// Zmienia e-mail od razu po potwierdzeniu hasłem. Firebase pozwala na to tylko przy
+    /// wyłączonej ochronie przed enumeracją e-maili (Authentication → Settings → User actions).
+    /// Przy włączonej odrzuca `updateEmail` kodem `.operationNotAllowed` — wtedy wysyłamy link
+    /// na nowy adres, a zmiana wchodzi po jego kliknięciu (i unieważnia sesję).
+    func changeEmail(to email: String, password: String) async throws -> EmailChangeResult {
+        try await reauthenticate(password: password)
         guard let user = currentUser else {
             throw NSError(domain: "NEIAuthService", code: 0, userInfo: [NSLocalizedDescriptionKey: "No signed-in user."])
         }
-        try await user.sendEmailVerification(beforeUpdatingEmail: email)
+        do {
+            try await (user as any DirectEmailUpdating).updateEmail(to: email)
+            currentUser = auth.currentUser
+            return .changed
+        } catch let error as NSError where AuthErrorCode(rawValue: error.code) == .operationNotAllowed {
+            try await user.sendEmailVerification(beforeUpdatingEmail: email)
+            return .verificationSent
+        }
     }
 
     func sendPasswordReset(email: String) async throws {

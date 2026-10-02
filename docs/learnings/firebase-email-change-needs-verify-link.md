@@ -1,12 +1,14 @@
 ---
 name: firebase-email-change-needs-verify-link
-description: Firebase Auth updateEmail(to:) fails on this project — email change must go through sendEmailVerification(beforeUpdatingEmail:)
+description: Firebase Auth rejects updateEmail(to:) while email enumeration protection is on; the app falls back to sendEmailVerification(beforeUpdatingEmail:)
 type: gotcha
 area: Auth
 ---
 
-Edit Profile wrote the new email to the Firestore `users` doc, then called `try? await user.updateEmail(to:)`. Firebase rejected that call: the project has email enumeration protection on, and a direct email change also requires a recent login. The `try?` swallowed the error. Settings reads `authService.currentUser?.email`, so it kept showing the old address while the profile doc held the new one.
+Edit Profile used to call `try? await user.updateEmail(to:)`. Firebase rejected it, and the `try?` hid the error. Settings reads `authService.currentUser?.email`, so it kept the old address while the profile doc showed the new one.
 
-**Why:** Firebase won't switch a sign-in email until the new owner clicks a link. `sendEmailVerification(beforeUpdatingEmail:)` sends that link. When it's clicked, Auth changes the email and revokes the session, so the user signs in again with the new address.
+**Why:** `neighborly-d3c33` had email enumeration protection on, as new Firebase projects do by default. With it on, Firebase only changes an email through a link sent to the new address (`sendEmailVerification(beforeUpdatingEmail:)`), and `updateEmail(to:)` fails with `.operationNotAllowed` even right after reauthentication. You can check from outside: `accounts:createAuthUri` leaves out the `registered` field while protection is on.
 
-**How to apply:** Change email only through `NEIAuthService.requestEmailChange(to:)`. On `.requiresRecentLogin`, prompt for the password, call `reauthenticate(password:)`, then retry. Firebase Auth is the only store for email. The `users` doc is readable by every signed-in user, so it must not hold one: `firestore.rules` rejects adding or changing `email` there, and `removeLegacyProfileEmail` strips the old field when its owner signs in.
+**How to apply:** change email only through `NEIAuthService.changeEmail(to:password:)`. It reauthenticates with the password and calls `updateEmail(to:)`. On `.operationNotAllowed` it sends the link instead and returns `.verificationSent`. `updateEmail` is deprecated, so the service calls it through the `DirectEmailUpdating` protocol to keep the build free of warnings.
+
+Firebase Auth is the only place that stores the email. The `users` doc is readable by every signed-in user: `firestore.rules` rejects adding or changing `email` there, and `removeLegacyProfileEmail` strips the old field when its owner signs in.

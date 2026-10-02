@@ -70,10 +70,11 @@ struct NEIEditProfileView: View {
             .alert("Enter Your Password", isPresented: $showPasswordPrompt) {
                 SecureField("Password", text: $password)
                     .textContentType(.password)
-                Button("Continue") { Task { await requestEmailChange(reauthenticating: true) } }
+                Button("Change Email") { Task { await changeEmail() } }
+                    .disabled(password.isEmpty)
                 Button("Cancel", role: .cancel) { password = "" }
             } message: {
-                Text("Confirm it's you to change your email.")
+                Text("To change your email to \(trimmedEmail), enter your password.")
             }
             .alert("Check Your Inbox", isPresented: .init(
                 get: { pendingEmail != nil },
@@ -118,24 +119,22 @@ struct NEIEditProfileView: View {
         if trimmedEmail.isEmpty || trimmedEmail.caseInsensitiveCompare(originalEmail) == .orderedSame {
             dismiss()
         } else {
-            await requestEmailChange(reauthenticating: false)
+            showPasswordPrompt = true
         }
     }
 
-    private func requestEmailChange(reauthenticating: Bool) async {
+    private func changeEmail() async {
+        let entered = password
+        password = ""
         isChangingEmail = true
         defer { isChangingEmail = false }
         do {
-            if reauthenticating {
-                let entered = password
-                password = ""
-                try await authService.reauthenticate(password: entered)
+            switch try await authService.changeEmail(to: trimmedEmail, password: entered) {
+            case .changed: dismiss()
+            case .verificationSent: pendingEmail = trimmedEmail
             }
-            try await authService.requestEmailChange(to: trimmedEmail)
-            pendingEmail = trimmedEmail
         } catch {
             switch AuthErrorCode(rawValue: (error as NSError).code) {
-            case .requiresRecentLogin: showPasswordPrompt = true
             case .wrongPassword, .invalidCredential: vm.errorMessage = "That password isn't right."
             case .invalidEmail: vm.errorMessage = "That email address isn't valid."
             case .emailAlreadyInUse: vm.errorMessage = "Another account already uses that email."
