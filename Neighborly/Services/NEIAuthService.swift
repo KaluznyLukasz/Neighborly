@@ -8,6 +8,20 @@ import Combine
 import FirebaseAuth
 import FirebaseFirestore
 
+/// `updateEmail(to:)` jest oznaczone jako przestarzałe, bo Firebase woli link weryfikacyjny.
+/// Celowo zmieniamy e-mail samym hasłem, więc wołamy je przez ten protokół, żeby każdy
+/// build nie sypał ostrzeżeniem. Jeśli SDK usunie metodę, build tu padnie.
+private protocol DirectEmailUpdating {
+    func updateEmail(to email: String) async throws
+}
+
+extension FirebaseAuth.User: DirectEmailUpdating {}
+
+enum EmailChangeResult {
+    case changed
+    case verificationSent
+}
+
 @MainActor
 final class NEIAuthService: ObservableObject {
     @Published var currentUser: FirebaseAuth.User?
@@ -22,6 +36,7 @@ final class NEIAuthService: ObservableObject {
             Task { @MainActor in
                 self?.currentUser = user
                 self?.isRestoring = false
+                if let user { await self?.removeLegacyProfileEmail(of: user) }
             }
         }
     }
@@ -75,6 +90,25 @@ final class NEIAuthService: ObservableObject {
         currentUser = nil
     }
 
+    /// Zmienia e-mail od razu po potwierdzeniu hasłem. Firebase pozwala na to tylko przy
+    /// wyłączonej ochronie przed enumeracją e-maili (Authentication → Settings → User actions).
+    /// Przy włączonej odrzuca `updateEmail` kodem `.operationNotAllowed` — wtedy wysyłamy link
+    /// na nowy adres, a zmiana wchodzi po jego kliknięciu (i unieważnia sesję).
+    func changeEmail(to email: String, password: String) async throws -> EmailChangeResult {
+        try await reauthenticate(password: password)
+        guard let user = currentUser else {
+            throw NSError(domain: "NEIAuthService", code: 0, userInfo: [NSLocalizedDescriptionKey: "No signed-in user."])
+        }
+        do {
+            try await (user as any DirectEmailUpdating).updateEmail(to: email)
+            currentUser = auth.currentUser
+            return .changed
+        } catch let error as NSError where AuthErrorCode(rawValue: error.code) == .operationNotAllowed {
+            try await user.sendEmailVerification(beforeUpdatingEmail: email)
+            return .verificationSent
+        }
+    }
+
     func sendPasswordReset(email: String) async throws {
         try await auth.sendPasswordReset(withEmail: email)
     }
@@ -83,11 +117,17 @@ final class NEIAuthService: ObservableObject {
         currentUser = auth.currentUser
     }
 
+    /// Profil w `users` czyta każdy zalogowany, więc e-mail trzymamy tylko w Firebase Auth.
+    /// Starsze dokumenty mają jeszcze pole `email` — właściciel czyści je przy logowaniu.
+    /// `updateData` nie tworzy dokumentu, więc nie ściga się z `createUserDocument`.
+    private func removeLegacyProfileEmail(of user: FirebaseAuth.User) async {
+        try? await db.collection("users").document(user.uid).updateData(["email": FieldValue.delete()])
+    }
+
     private func createUserDocument(user: FirebaseAuth.User, displayName: String) async throws {
         let data: [String: Any] = [
             "id": user.uid,
             "displayName": displayName,
-            "email": user.email ?? "",
             "rating": 0.0,
             "reviewCount": 0,
             "createdAt": Timestamp(date: Date())

@@ -124,8 +124,15 @@ struct NEICreateAlertView: View {
                     if isPosting {
                         ProgressView()
                     } else {
-                        Button("Post") { Task { await post() } }
-                            .disabled(!canPost)
+                        Button {
+                            Task { await post() }
+                        } label: {
+                            Text("Post").fontWeight(.semibold)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(Color.neiGreen)
+                        .controlSize(.small)
+                        .disabled(!canPost)
                     }
                 }
             }
