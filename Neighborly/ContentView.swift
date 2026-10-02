@@ -94,7 +94,10 @@ struct ContentView: View {
                         .tag(NEITab.search)
                 }
                 .environment(locationManager)
-                .task { await loadTransactions() }
+                .task {
+                    if let uid = authService.currentUser?.uid { NEIAlertNotifier.shared.start(userId: uid) }
+                    await loadTransactions()
+                }
                 // Po powrocie z tła: świeży badge i przypomnienia z terminami ustawionymi w międzyczasie
                 // (z tła aplikacja przechodzi przez .inactive, więc pamiętamy, że była w tle)
                 .onChange(of: scenePhase) { _, phase in
@@ -110,6 +113,10 @@ struct ContentView: View {
                 .onChange(of: notificationRouter.pendingTransactionId, initial: true) { _, id in
                     if id != nil { selectedTab = .activity }
                 }
+                // Ogłoszenia są na mapie (dzwonek) — tam otwiera się arkusz z ogłoszeniem
+                .onChange(of: notificationRouter.pendingAlert, initial: true) { _, route in
+                    if route != nil { selectedTab = .map }
+                }
             } else {
                 NEIAuthView(authService: authService)
             }
@@ -123,6 +130,7 @@ struct ContentView: View {
                 selectedTab = .map
                 // Nowy view model: listy i badge poprzedniego konta nie przechodzą na następne
                 transactionVM = NEITransactionViewModel()
+                NEIAlertNotifier.shared.signOut()
                 Task { await NEIReminderService.cancelAll() }
             }
         }

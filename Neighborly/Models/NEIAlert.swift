@@ -84,4 +84,7 @@ struct AlertThread: Identifiable, Codable {
     var viewerName: String
     var lastMessage: String
     var updatedAt: Date
+    // Kto napisał ostatnią wiadomość — powiadamiamy tylko drugą stronę. nil w wątkach sprzed
+    // dodania pola; o nich nie powiadamiamy.
+    var lastSenderId: String?
 }

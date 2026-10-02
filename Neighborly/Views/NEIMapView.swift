@@ -47,6 +47,7 @@ final class LocationManager: NSObject, CLLocationManagerDelegate {
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
         userCoordinate = location.coordinate
+        NEIUserPreferences.lastKnownLocation = (location.coordinate.latitude, location.coordinate.longitude)
         manager.stopUpdatingLocation()
     }
 }
@@ -59,6 +60,8 @@ struct NEIMapView: View {
     @State private var showCreateOffer = false
     @State private var alertVM = NEIAlertViewModel()
     @State private var showAlerts = false
+    @State private var alertsPath = NavigationPath()
+    private let notificationRouter = NEINotificationRouter.shared
     @State private var mapPosition: MapCameraPosition = .region(
         MKCoordinateRegion(center: defaultCenter, span: defaultSpan)
     )
@@ -87,6 +90,34 @@ struct NEIMapView: View {
         withAnimation(.smooth(duration: 0.6)) {
             mapPosition = .region(MKCoordinateRegion(center: center, span: span))
         }
+    }
+
+    // Tapnięte powiadomienie: arkusz ogłoszeń z otwartym ogłoszeniem (albo od razu rozmową).
+    // Ogłoszenie, które zdążyło wygasnąć, zostawia samą listę.
+    private func openAlert(_ route: NEIAlertRoute) async {
+        var path = NavigationPath()
+        if !route.alertId.isEmpty,
+           let alert = try? await NEIAlertService().fetch(id: route.alertId),
+           alert.expiresAt > Date() {
+            path.append(alert)
+            if let viewerId = route.viewerId, let uid = authService.currentUser?.uid {
+                if viewerId == uid {
+                    let name = authService.currentUser?.displayName ?? "Neighbor"
+                    path.append(NEIAlertChatRoute.toAuthor(of: alert, userId: uid, userName: name))
+                } else if !viewerId.isEmpty,
+                          let thread = try? await NEIAlertService().fetchThread(alertId: route.alertId, viewerId: viewerId) {
+                    path.append(NEIAlertChatRoute.toViewer(of: alert, thread: thread))
+                }
+            }
+        }
+        alertsPath = path
+        // Inny arkusz (oferta, nowa oferta) blokowałby pokazanie ogłoszeń — najpierw go zamykamy
+        if selectedOffer != nil || showCreateOffer {
+            selectedOffer = nil
+            showCreateOffer = false
+            try? await Task.sleep(for: .milliseconds(450))
+        }
+        showAlerts = true
     }
 
     private var alertsButton: some View {
@@ -207,8 +238,13 @@ struct NEIMapView: View {
             .background(.clear)
         }
         .overlay(alignment: .topLeading) { alertsButton }
-        .sheet(isPresented: $showAlerts) {
-            NEIAlertsView(vm: alertVM)
+        .sheet(isPresented: $showAlerts, onDismiss: { alertsPath = NavigationPath() }) {
+            NEIAlertsView(vm: alertVM, path: $alertsPath)
+        }
+        .onChange(of: notificationRouter.pendingAlert, initial: true) { _, route in
+            guard let route else { return }
+            notificationRouter.pendingAlert = nil
+            Task { await openAlert(route) }
         }
         .task(id: locationManager.userCoordinate) {
             guard let coord = locationManager.userCoordinate else { return }

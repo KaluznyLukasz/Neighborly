@@ -99,14 +99,7 @@ struct NEIAlertDetailView: View {
             }
         }
         .navigationDestination(isPresented: $showChat) {
-            NEIChatView(
-                title: alert.authorName,
-                conversationPath: NEIMessageService.path(alertId: alertId, viewerId: uid),
-                currentUserId: uid,
-                currentUserName: userName
-            ) { text in
-                try? await alertService.upsertThread(alertId: alertId, viewerId: uid, viewerName: userName, lastMessage: text)
-            }
+            NEIAlertChatView(route: .toAuthor(of: alert, userId: uid, userName: userName))
         }
         .task { if isAuthor { await loadThreads() } }
         .refreshable { if isAuthor { await loadThreads() } }
@@ -129,19 +122,7 @@ struct NEIAlertDetailView: View {
             } else {
                 ForEach(threads) { thread in
                     NavigationLink {
-                        NEIChatView(
-                            title: thread.viewerName,
-                            conversationPath: NEIMessageService.path(alertId: alertId, viewerId: thread.id ?? ""),
-                            currentUserId: uid,
-                            currentUserName: userName
-                        ) { text in
-                            try? await alertService.upsertThread(
-                                alertId: alertId,
-                                viewerId: thread.id ?? "",
-                                viewerName: thread.viewerName,
-                                lastMessage: text
-                            )
-                        }
+                        NEIAlertChatView(route: .toViewer(of: alert, thread: thread))
                     } label: {
                         HStack(spacing: 12) {
                             NEIAvatarView(url: nil, name: thread.viewerName, size: 40, base64: nil)

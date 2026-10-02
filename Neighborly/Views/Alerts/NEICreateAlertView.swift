@@ -148,6 +148,8 @@ struct NEICreateAlertView: View {
         if ok {
             dismiss()
             await onPosted()
+            // Sąsiedzi będą odpowiadać — teraz widać, po co zgoda na powiadomienia
+            await NEIReminderService.requestAuthorizationIfNeeded(enabled: NEIUserPreferences.alertRepliesEnabled)
         }
     }
 }
