@@ -51,6 +51,8 @@ Early-stage iOS app (SwiftUI + Firebase iOS SDK 12.13.0).
 
 **Data layer:** Firebase Firestore. Direct `Firestore.firestore()` calls currently live in views; no repository/service layer yet.
 
+**Notifications:** all local, no push backend. `NEIReminderService` (transaction due dates), `NEIAlertNotifier` (new nearby alerts + alert chat replies) and `NEINotificationRouter` (tap → screen). They run on Firestore listeners while the app is open and on `BGAppRefreshTask` (`refreshInBackground`) when it's closed.
+
 **Models:** `Neighborly/Models/` — `NEIOffer.swift` defines `Offer` (Identifiable, Codable). Uses `CLLocationCoordinate2D` computed from stored `latitude`/`longitude` doubles. `id` is optional (assigned by Firestore on write).
 
 **Firebase config:** `GoogleService-Info.plist` in the app target — do not commit changes to this file with real credentials.

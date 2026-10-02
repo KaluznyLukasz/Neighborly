@@ -12,12 +12,14 @@ struct NEIAlertsView: View {
     @Environment(LocationManager.self) private var locationManager
     @Environment(\.dismiss) private var dismiss
     let vm: NEIAlertViewModel
+    // Ścieżka z zewnątrz — tapnięte powiadomienie otwiera od razu ogłoszenie albo rozmowę
+    @Binding var path: NavigationPath
     @State private var showCreate = false
 
     private var uid: String { authService.currentUser?.uid ?? "" }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             content
                 .navigationTitle("Alerts")
                 .navigationBarTitleDisplayMode(.inline)
@@ -37,9 +39,15 @@ struct NEIAlertsView: View {
                 .navigationDestination(for: NeighborhoodAlert.self) { alert in
                     NEIAlertDetailView(alert: alert)
                 }
+                .navigationDestination(for: NEIAlertChatRoute.self) { route in
+                    NEIAlertChatView(route: route)
+                }
                 .sheet(isPresented: $showCreate) {
                     NEICreateAlertView(vm: vm) { await reload() }
                 }
+                // Przy otwartej liście nowe ogłoszenia widać od razu — bez powiadomień
+                .onAppear { NEINotificationRouter.shared.isViewingAlerts = true }
+                .onDisappear { NEINotificationRouter.shared.isViewingAlerts = false }
                 .onAppear {
                     // Pierwsze otwarcie: od razu systemowy monit o zgodę na lokalizację
                     if locationManager.authorizationStatus == .notDetermined {

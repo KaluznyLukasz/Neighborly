@@ -27,6 +27,8 @@ struct NEISettingsView: View {
     @State private var searchRadiusKm: Double = NEIUserPreferences.searchRadiusKm
     @AppStorage("appearanceMode") private var appearanceMode: String = "system"
     @AppStorage(NEIUserPreferences.remindersKey) private var remindersOn = true
+    @AppStorage(NEIUserPreferences.nearbyAlertsKey) private var nearbyAlertsOn = true
+    @AppStorage(NEIUserPreferences.alertRepliesKey) private var alertRepliesOn = true
 
     private let radiusOptions: [Double] = [1, 3, 5, 10, 25, 50, 100, NEIUserPreferences.unlimitedRadiusKm]
 
@@ -57,6 +59,12 @@ struct NEISettingsView: View {
         }
         .onChange(of: remindersOn) { _, enabled in
             Task { await applyReminderPreference(enabled) }
+        }
+        .onChange(of: nearbyAlertsOn) { _, enabled in
+            if enabled { Task { await askForNotifications() } }
+        }
+        .onChange(of: alertRepliesOn) { _, enabled in
+            if enabled { Task { await askForNotifications() } }
         }
         .sheet(isPresented: $showEditSheet, onDismiss: {
             Task { await vm.load(userId: userId) }
@@ -187,6 +195,14 @@ struct NEISettingsView: View {
         Section {
             Toggle(isOn: $remindersOn) {
                 NEISettingsLabel(title: "Reminders", systemImage: "alarm.fill", tint: Color.neiGreen)
+            }
+
+            Toggle(isOn: $nearbyAlertsOn) {
+                NEISettingsLabel(title: "Nearby Alerts", systemImage: "megaphone.fill", tint: Color.neiAmber)
+            }
+
+            Toggle(isOn: $alertRepliesOn) {
+                NEISettingsLabel(title: "Alert Replies", systemImage: "bubble.left.and.bubble.right.fill", tint: Color.neiBlue)
             }
 
             systemSettingRow(
@@ -327,10 +343,12 @@ struct NEISettingsView: View {
     }
 
     private var remindersFooter: String {
-        if remindersOn && notificationStatus == .denied {
-            return "Notifications are off for Neighborly. Turn them on in Settings to get reminders."
+        if (remindersOn || nearbyAlertsOn || alertRepliesOn) && notificationStatus == .denied {
+            return "Notifications are off for Neighborly. Turn them on in Settings to get reminders and alerts."
         }
-        return "Get a reminder the evening before a return date or planned day, and again on the day."
+        return "Reminders come the evening before a return date or planned day, and again on the day. "
+            + "Nearby alerts cover your search radius, up to 25 km. "
+            + "When Neighborly is closed, alerts and replies may arrive a little late."
     }
 
     private func radiusText(_ km: Double) -> String {
@@ -341,6 +359,11 @@ struct NEISettingsView: View {
 
     private func refreshNotificationStatus() async {
         notificationStatus = await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
+    }
+
+    private func askForNotifications() async {
+        await NEIReminderService.requestAuthorizationIfNeeded(enabled: true)
+        await refreshNotificationStatus()
     }
 
     private func applyReminderPreference(_ enabled: Bool) async {

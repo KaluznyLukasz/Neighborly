@@ -5,6 +5,7 @@ learning under `docs/learnings/`. Add with `/nei-learn`; promote recurring rules
 `CLAUDE.md` with `/nei-distill`.
 
 <!-- newest first -->
+- [firestore-first-snapshot-may-be-cache](firestore-first-snapshot-may-be-cache.md) — a listener's first snapshot is often cached, the server one follows; filter by document timestamps, not snapshot order
 - [backgroundtask-builds-scene-before-launch](backgroundtask-builds-scene-before-launch.md) — .backgroundTask on the scene builds StateObjects before didFinishLaunching; FirebaseApp.configure() lives in App.init
 - [ios27-sim-provisional-notifications-denied](ios27-sim-provisional-notifications-denied.md) — iOS 27 beta sim: provisional auth reports granted but add() fails as Denied; test reminders on an iOS 26.x sim
 - [derived-data-per-checkout](derived-data-per-checkout.md) — each worktree has its own DerivedData (MD5 of project path); use scripts/derived-data.sh, never a Neighborly-* glob

@@ -64,8 +64,8 @@ final class NEIAlertService {
         db.collection(collection).document(alertId).collection("threads")
     }
 
-    func upsertThread(alertId: String, viewerId: String, viewerName: String, lastMessage: String) async throws {
-        let thread = AlertThread(viewerName: viewerName, lastMessage: lastMessage, updatedAt: Date())
+    func upsertThread(alertId: String, viewerId: String, viewerName: String, lastMessage: String, senderId: String) async throws {
+        let thread = AlertThread(viewerName: viewerName, lastMessage: lastMessage, updatedAt: Date(), lastSenderId: senderId)
         let data = try Firestore.Encoder().encode(thread)
         try await threads(alertId: alertId).document(viewerId).setData(data, merge: true)
     }
@@ -75,5 +75,51 @@ final class NEIAlertService {
             .order(by: "updatedAt", descending: true)
             .getDocuments()
         return snapshot.documents.compactMap { try? $0.data(as: AlertThread.self) }
+    }
+
+    // MARK: - Do powiadomień
+
+    // Puste ID wywróciłoby Firestore (niepoprawna ścieżka dokumentu)
+    func fetch(id: String) async throws -> NeighborhoodAlert? {
+        guard !id.isEmpty else { return nil }
+        return try? await db.collection(collection).document(id).getDocument().data(as: NeighborhoodAlert.self)
+    }
+
+    // Jednorazowo (odświeżanie w tle) — to samo zapytanie co listenActive
+    func fetchActive() async throws -> [NeighborhoodAlert] {
+        let snapshot = try await db.collection(collection)
+            .whereField("expiresAt", isGreaterThan: Timestamp(date: Date()))
+            .getDocuments()
+        return snapshot.documents.compactMap { try? $0.data(as: NeighborhoodAlert.self) }
+    }
+
+    // Wątek sąsiada przy cudzym ogłoszeniu (ID wątku = ID sąsiada)
+    func fetchThread(alertId: String, viewerId: String) async throws -> AlertThread? {
+        guard !alertId.isEmpty, !viewerId.isEmpty else { return nil }
+        return try? await threads(alertId: alertId).document(viewerId).getDocument().data(as: AlertThread.self)
+    }
+
+    // Moje ogłoszenia — jedna równość, bez indeksu złożonego; wygasłe odfiltrowuje wywołujący
+    func listenMine(authorId: String, onChange: @escaping @Sendable ([NeighborhoodAlert]) -> Void) -> ListenerRegistration {
+        db.collection(collection)
+            .whereField("authorId", isEqualTo: authorId)
+            .addSnapshotListener { snapshot, _ in
+                guard let snapshot else { return }
+                onChange(snapshot.documents.compactMap { try? $0.data(as: NeighborhoodAlert.self) })
+            }
+    }
+
+    func listenThreads(alertId: String, onChange: @escaping @Sendable ([AlertThread]) -> Void) -> ListenerRegistration {
+        threads(alertId: alertId).addSnapshotListener { snapshot, _ in
+            guard let snapshot else { return }
+            onChange(snapshot.documents.compactMap { try? $0.data(as: AlertThread.self) })
+        }
+    }
+
+    func listenThread(alertId: String, viewerId: String, onChange: @escaping @Sendable (AlertThread?) -> Void) -> ListenerRegistration {
+        threads(alertId: alertId).document(viewerId).addSnapshotListener { snapshot, _ in
+            guard let snapshot else { return }
+            onChange(try? snapshot.data(as: AlertThread.self))
+        }
     }
 }
