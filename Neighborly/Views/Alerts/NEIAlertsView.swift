@@ -24,16 +24,23 @@ struct NEIAlertsView: View {
                 .navigationTitle("Alerts")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Done") { dismiss() }
-                    }
-                    ToolbarItem(placement: .topBarTrailing) {
+                    ToolbarItem(placement: .topBarLeading) {
                         Button {
                             showCreate = true
                         } label: {
                             Label("New Alert", systemImage: "plus")
                         }
                         .disabled(locationManager.userCoordinate == nil)
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button {
+                            dismiss()
+                        } label: {
+                            Text("Done").fontWeight(.semibold)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(Color.neiGreen)
+                        .controlSize(.small)
                     }
                 }
                 .navigationDestination(for: NeighborhoodAlert.self) { alert in
