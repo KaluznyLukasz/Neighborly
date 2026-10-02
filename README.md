@@ -1,156 +1,129 @@
-# Neighborly
+<p align="center">
+  <img src="Neighborly/Assets.xcassets/NeighborlyIcon.imageset/NeighborlyIcon%201.png" width="128" height="128" alt="Neighborly app icon">
+</p>
 
-An iOS app for asking neighbors for help and giving it. You post what you need on a map,
-people nearby offer to help, and you both leave a review when it's done.
+<h1 align="center">Neighborly</h1>
 
-SwiftUI front end, Firebase back end (Auth + Firestore). No server code of its own.
+<p align="center">
+  <strong>A native iOS app for asking the people next door for a hand, or lending one. Built in SwiftUI on Firebase.</strong>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/platform-iOS%2026.2%2B-0A84FF" alt="platform: iOS 26.2+">
+  <img src="https://img.shields.io/badge/Swift-5-F05138?logo=swift&logoColor=white" alt="Swift 5">
+  <img src="https://img.shields.io/badge/UI-SwiftUI-1C1C1E" alt="UI: SwiftUI">
+  <img src="https://img.shields.io/badge/backend-Firebase%2012.13-FFCA28?logo=firebase&logoColor=black" alt="backend: Firebase 12.13">
+  <img src="https://img.shields.io/badge/version-1.0-3CB371" alt="version 1.0">
+  <img src="https://img.shields.io/badge/license-all%20rights%20reserved-8E8E93" alt="license: all rights reserved">
+</p>
+
+---
+
+## What is Neighborly
+
+Neighborly is a **map-first** iOS app for local help. You post what you need: a repair, a
+dog walk, groceries, a drill to borrow. Neighbors nearby offer to help, you pick one, agree
+on a date, chat, and rate each other when it's done.
+
+Four tabs: **Map · Activity · Profile · Search**. Views read `@Observable` view models, and
+each view model calls one `NEI*Service` per Firestore collection.
 
 ## Features
 
-- **Map feed.** Posts near you show up as pins, colored by category: Repairs, General
-  Help, Food & Groceries, Services and Items.
-- **Posts and replies.** Post a request with a title, description, address and optional
-  photo. Neighbors tap **Offer to Help**; you accept or decline each one.
-- **Activity tab.** Your inbox and the offers you've sent, with a badge for pending
-  replies. After accepting, the poster can set a date: a return date for Items, a planned
-  day for everything else. Overdue returns get flagged.
-- **Chat.** One thread per exchange, open from the first offer to help.
-- **Reviews and trust badges.** The poster marks the exchange done, then both sides rate
-  each other. Badges such
-  as Top Rated, Trusted Neighbor and Active Helper come from public profile data, so
-  nobody can fake one by writing to Firestore.
-- **Neighborhood alerts.** Short posts for Lost Pet, Lost & Found, Safety, Outage & Works
-  or Heads Up. They expire after 48 hours. Neighbors can message the author privately.
-- **Search.** Browse by category within a radius you pick in Settings.
-- **Saved posts, blocking, profile editing,** light/dark appearance and per-type
-  notification toggles.
-- **Local notifications** for due dates, new alerts nearby and alert replies. Firestore
-  listeners drive them while the app is open; a `BGAppRefreshTask` checks when it's
-  closed. There is no push backend.
+- 🗺️ **Map feed** — nearby posts as pins, colored by category: Repairs, General Help, Food & Groceries, Services, Items.
+- ✍️ **Posts and offers to help** — title, description, address, optional photo. Neighbors tap **Offer to Help**; you accept or decline.
+- 📥 **Activity** — your inbox and sent offers, with a badge for pending replies. Set a return date for Items or a planned day for the rest; overdue returns get flagged.
+- 💬 **Chat** — one thread per exchange, open from the first offer.
+- ⭐ **Reviews and trust badges** — both sides rate each other once the poster marks the job done. Badges (Top Rated, Trusted Neighbor, Active Helper…) come from public data, so nobody can fake one.
+- 📣 **Neighborhood alerts** — Lost Pet, Lost & Found, Safety, Outage & Works, Heads Up. They expire after 48 hours; neighbors can message the author privately.
+- 🔍 **Search** — browse by category within a radius you set.
+- 🔔 **Local notifications** — due dates, new alerts nearby, alert replies. Firestore listeners while open, `BGAppRefreshTask` while closed, no push backend.
+- 👤 **Profile and safety** — edit profile, saved posts, blocked users, community guidelines, light/dark appearance.
 
-## Requirements
+## Tech
 
-- macOS with **Xcode-beta** at `/Applications/Xcode-beta.app` (iOS SDK 27). The `Makefile`
-  and scripts point `DEVELOPER_DIR` there.
-- An iOS Simulator runtime of **iOS 26.2 or later** (the deployment target). `iPhone 17
-  Pro` on iOS 27 works. An `iPhone 16` on iOS 26.0 won't install.
-- Swift Package Manager resolves dependencies on first build. The main one is
-  [firebase-ios-sdk](https://github.com/firebase/firebase-ios-sdk) 12.13.0.
-- Optional: Node.js, for deploying Firestore rules with `npx firebase-tools`.
-
-## Getting started
+SwiftUI · Swift 5 mode (`MainActor` default isolation, approachable concurrency,
+`MemberImportVisibility`) · `@Observable` view models · **MapKit** + **CoreLocation** ·
+**Firebase Auth** + **Firestore** via SwiftPM · **UserNotifications** + **BackgroundTasks**.
 
 ```sh
-git clone https://github.com/KaluznyLukasz/Neighborly.git
-cd Neighborly
-make run          # build, boot a simulator, install, launch
+make build   # compile for the iOS Simulator (Xcode-beta workarounds built in)
+make run     # build + boot a simulator + install + launch
 ```
 
-`make run` reuses a booted simulator, or boots `iPhone 17 Pro`. Pick another with
-`make run SIM='<name>'` (`make sims` lists them).
+> Requires Xcode-beta at `/Applications/Xcode-beta.app` (iOS SDK 27). Deployment: iOS 26.2.
+> Use a simulator on iOS 26.2 or later; `iPhone 17 Pro` on iOS 27 works.
 
-To run on your own iPhone, pair it with Xcode once, unlock it, turn on Developer Mode,
-then:
+`scripts/build.sh` wraps `xcodebuild` and works around four Xcode-beta bugs in the Firebase
+package graph. Each fix has a comment in the script. Every git worktree gets its own
+DerivedData, so worktrees build side by side.
 
-```sh
-make devices
-make run-device DEVICE='<device name>'
-```
+### Backend
 
-Device builds use automatic signing with team `8L27R45F5T`. Change `DEVELOPMENT_TEAM` in
-the project if you sign with your own account.
-
-You can also open `Neighborly.xcodeproj` in Xcode-beta and press ⌘R.
-
-### Make targets
-
-| Command | Does |
-| --- | --- |
-| `make build` | Compile for the iOS Simulator (`scripts/build.sh`) |
-| `make run` | Build, install and launch on a simulator |
-| `make run-device` | Build, install and launch on a paired iPhone |
-| `make screenshot` | Save the booted simulator screen to `build/screenshot.png` |
-| `make logs` | Stream the app's `os_log` output |
-| `make stop` | Kill the app on the booted simulator |
-| `make sims` / `make devices` | List simulators / paired devices |
-| `make clean` | Remove this checkout's build products |
-| `make nuke` | Delete this checkout's whole DerivedData |
-| `make clean-cache` | Clear the SwiftPM cache and re-resolve packages |
-| `make lint` / `make format` | SwiftLint / SwiftFormat, if installed |
-
-### Why `scripts/build.sh`
-
-Plain `xcodebuild` fails on this Xcode-beta with the Firebase package graph. The script
-works around four toolchain bugs (a `nanopb` file named `build`, a malformed index-store
-flag, generated module maps that packages can't find, and resource bundles landing in
-the wrong directory). Each one has a comment in the script. It also gives every git
-worktree its own DerivedData, so worktrees build side by side.
-
-A successful build ends with `** BUILD SUCCEEDED **`.
-
-## Firebase
-
-The app talks to the Firebase project `neighborly-d3c33` (see `.firebaserc`) through
-`Neighborly/GoogleService-Info.plist`.
-
-To point it at your own project, create an iOS app in the Firebase console with bundle ID
-`app.me.kaluzny.lukasz.Neighborly` (or your own), replace `GoogleService-Info.plist`,
-and update `.firebaserc`. Enable Email/Password sign-in and Firestore. Don't commit your
-own credentials.
-
-### Data
+Firebase project `neighborly-d3c33` (`.firebaserc`). Photos and avatars live in the
+documents as base64 strings.
 
 | Collection | Holds |
 | --- | --- |
-| `users/{uid}` | Profile, rating, review count. Subcollections `favorites` and `blocked` |
+| `users/{uid}` | Profile, rating, review count · `favorites`, `blocked` |
 | `offers/{id}` | Posts on the map (`Offer` in code) |
-| `transactions/{id}` | One neighbor's offer to help with a post, its status and date. Subcollection `messages` |
-| `alerts/{id}` | Neighborhood alerts. Subcollection `threads/{viewerId}/messages` |
+| `transactions/{id}` | An offer to help with a post, its status and date · `messages` |
+| `alerts/{id}` | Neighborhood alerts · `threads/{viewerId}/messages` |
 | `reviews/{id}` | One review per side per exchange |
 
-Photos and avatars live in the documents as base64 strings.
-
-`firestore.rules` and `firestore.indexes.json` hold the security rules and composite
-indexes. Deploy them with:
+Rules and indexes live in `firestore.rules` and `firestore.indexes.json`:
 
 ```sh
 npx --yes firebase-tools@latest deploy --only firestore --project neighborly-d3c33
 ```
 
-A query that adds a second filter or sort to a range query needs a new composite index,
-or it fails at runtime.
+---
 
-## Project layout
+## 🤖 Self-improving AI development system
 
+Neighborly ships with a [Claude Code](https://claude.com/claude-code) workflow, so the
+codebase **documents and improves itself**:
+
+- **Layered knowledge** — root `CLAUDE.md`, a skill map in `.claude/skills/CLAUDE.md`, one-fact learnings in `docs/learnings/` (`INDEX.md`) and ADRs in `docs/decisions/`.
+- **Guardrails** — Claude Code hooks block commits, merges and pushes to `main`, ask for a build and a `/nei-learn` when Swift files changed, and warn before the context window fills up.
+- **Auto-applied skills** — 10 vendored `nei-*` skills (SwiftUI, concurrency, accessibility, security, testing, UI copy, prose…) applied **by scenario**, not by hand.
+- **The loop** — build until `** BUILD SUCCEEDED **` → `/nei-learn` the non-obvious fix → `/nei-distill` recurring ones into `CLAUDE.md` → fix what you find in the same change.
+
+### Command reference
+
+| Area | Commands |
+| --- | --- |
+| Build/run | `make build` · `make run` · `make run-device` · `/nei-build` · `/nei-run` |
+| Simulator | `make screenshot` · `make logs` · `make stop` · `make sims` · `make devices` |
+| Clean | `make clean` · `make nuke` · `make clean-cache` |
+| Quality | `make lint` · `make format` (SwiftLint / SwiftFormat, if installed) |
+| Knowledge | `/nei-learn` · `/nei-distill` · `/nei-new-adr` · `/nei-skills-update` |
+
+### Setup
+
+```sh
+git clone https://github.com/KaluznyLukasz/Neighborly.git
+cd Neighborly
+make run                                  # SIM='<name>' to pick a simulator
+make run-device DEVICE='<device name>'    # paired iPhone, Developer Mode on
 ```
-Neighborly/
-├── NeighborlyApp.swift   App entry, Firebase setup, background refresh
-├── ContentView.swift     Splash, auth gate, tab bar (Map, Activity, Profile, Search)
-├── Models/               Offer, Transaction, Review, User, NeighborhoodAlert, trust badges
-├── Services/             Firestore and Auth access, one service per collection
-├── ViewModels/           @Observable state for each screen
-├── Views/                Screens by feature, plus shared Components/
-└── Utils/                Notifications, caches, colors, user preferences
-scripts/                  build, run and DerivedData helpers
-docs/learnings/           Non-obvious facts and gotchas, one per file
-docs/decisions/           Architecture decision records
-TRD.md                    Original technical requirements and roadmap
-```
 
-File names start with `NEI`. A file can hold a type without the prefix: `NEIOffer.swift`
-defines `struct Offer`.
+Device builds sign automatically with team `8L27R45F5T`; change `DEVELOPMENT_TEAM` to use
+your own. To run against your own Firebase project, replace
+`Neighborly/GoogleService-Info.plist`, update `.firebaserc`, and enable Email/Password
+sign-in and Firestore. Don't commit your credentials.
 
-## Contributing
+Branch off `main` (`git switch -c <type>/<slug>`) and open a pull request. Code comments
+are in Polish.
 
-- `main` is protected. Branch with `git switch -c <type>/<slug>` and open a pull request.
-- Run `make build` and check for `** BUILD SUCCEEDED **` before you push.
-- Prefer stock iOS components: SF Symbols, system colors, `.alert`, `.swipeActions`,
-  standard sheets and navigation.
-- Code comments are in Polish.
-- Read `docs/learnings/INDEX.md` before touching an area. If you hit something surprising,
-  add a learning.
-- Record decisions that change how the app is built in `docs/decisions/`.
+---
 
-The repo carries a [Claude Code](https://claude.com/claude-code) setup: `CLAUDE.md`,
-project commands in `.claude/commands/` (`/nei-build`, `/nei-run`, `/nei-learn`,
-`/nei-new-adr`), vendored skills in `.claude/skills/` and hooks in `.claude/hooks/`.
+## License
+
+Neighborly has no license file, so default copyright applies: **all rights reserved**.
+Vendored skills in `.claude/skills/` keep their own MIT licenses (see `SOURCES.tsv`), and the
+Firebase SDK keeps Apache 2.0.
+
+---
+
+<p align="center"><sub>Built with SwiftUI · Backed by Firebase · Self-documenting</sub></p>
