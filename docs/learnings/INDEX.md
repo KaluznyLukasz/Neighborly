@@ -24,3 +24,4 @@ learning under `docs/learnings/`. Add with `/nei-learn`; promote recurring rules
 - [firebase-json-needs-indexes-key](firebase-json-needs-indexes-key.md) — firebase.json needs an "indexes" key or index deploys are a silent no-op
 - [sim-location-button-needs-location](sim-location-button-needs-location.md) — map "my location" button is a no-op on sim until a location is simulated + permission granted
 - [firebase-email-change-needs-verify-link](firebase-email-change-needs-verify-link.md) — updateEmail fails silently here; use sendEmailVerification(beforeUpdatingEmail:) + reauth; email lives only in Auth, never in the public users doc
+- [derived-data-hash-drops-private-prefix](derived-data-hash-drops-private-prefix.md) — Xcode hashes /private/tmp/... as /tmp/... for DerivedData; derived-data.sh strips /private to match
