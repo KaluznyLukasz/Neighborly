@@ -8,7 +8,7 @@ learning under `docs/learnings/`. Add with `/nei-learn`; promote recurring rules
 - [firestore-first-snapshot-may-be-cache](firestore-first-snapshot-may-be-cache.md) — a listener's first snapshot is often cached, the server one follows; filter by document timestamps, not snapshot order
 - [backgroundtask-builds-scene-before-launch](backgroundtask-builds-scene-before-launch.md) — .backgroundTask on the scene builds StateObjects before didFinishLaunching; FirebaseApp.configure() lives in App.init
 - [ios27-sim-provisional-notifications-denied](ios27-sim-provisional-notifications-denied.md) — iOS 27 beta sim: provisional auth reports granted but add() fails as Denied; test reminders on an iOS 26.x sim
-- [derived-data-per-checkout](derived-data-per-checkout.md) — each worktree has its own DerivedData (MD5 of project path); use scripts/derived-data.sh, never a Neighborly-* glob
+- [derived-data-per-checkout](derived-data-per-checkout.md) — each worktree has its own DerivedData (MD5 of project path); use scripts/derived-data.sh, never a Neighborly-* glob; Xcode hashes /private/tmp/x as /tmp/x
 - [push-inside-sheet-pin-primary-action](push-inside-sheet-pin-primary-action.md) — view pushed inside a .medium sheet keeps the detent; pin its main button with safeAreaInset, push instead of sheet-on-sheet
 - [sim-no-tap-use-launch-arg-hook](sim-no-tap-use-launch-arg-hook.md) — simctl can't tap; screenshot a deep screen via a temporary launch-arg branch in ContentView
 - [button-in-list-tints-primary-text-blue](button-in-list-tints-primary-text-blue.md) — any Button label renders .primary/.secondary text in the tint color (List rows included); use Color(.label)/Color(.secondaryLabel)

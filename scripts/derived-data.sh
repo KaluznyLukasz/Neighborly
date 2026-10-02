@@ -10,7 +10,7 @@
 cd "$(dirname "$0")/.."
 
 suffix="$(python3 - "$PWD/Neighborly.xcodeproj" <<'EOF'
-import hashlib, sys
+import hashlib, os, sys
 
 def base26(value):
     out = ""
@@ -19,7 +19,14 @@ def base26(value):
         value //= 26
     return out
 
-digest = hashlib.md5(sys.argv[1].encode()).digest()
+# Xcode hashes the standardized path, which drops a leading /private when the
+# shorter path exists too (/private/tmp/x → /tmp/x). Without this, a checkout
+# under /private/tmp or /private/var gets the wrong dir.
+path = sys.argv[1]
+if path.startswith("/private/") and os.path.exists(path[len("/private"):]):
+    path = path[len("/private"):]
+
+digest = hashlib.md5(path.encode()).digest()
 print(base26(int.from_bytes(digest[:8], "big")) + base26(int.from_bytes(digest[8:], "big")))
 EOF
 )"
