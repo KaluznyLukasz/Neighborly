@@ -19,10 +19,11 @@ def base26(value):
         value //= 26
     return out
 
-# Xcode standardizes the path first, which drops a leading /private when the
-# shorter path points to the same place (/private/tmp -> /tmp, /private/var -> /var).
+# Xcode hashes the standardized path, which drops a leading /private when the
+# shorter path exists too (/private/tmp/x → /tmp/x). Without this, a checkout
+# under /private/tmp or /private/var gets the wrong dir.
 path = sys.argv[1]
-if path.startswith("/private/") and os.path.realpath(path[len("/private"):]) == os.path.realpath(path):
+if path.startswith("/private/") and os.path.exists(path[len("/private"):]):
     path = path[len("/private"):]
 
 digest = hashlib.md5(path.encode()).digest()

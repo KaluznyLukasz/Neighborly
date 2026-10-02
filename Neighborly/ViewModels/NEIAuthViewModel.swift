@@ -52,7 +52,7 @@ final class NEIAuthViewModel {
     }
 
     func signOut() {
-        try? authService.signOut()
+        authService.signOut()
     }
 
     func sendPasswordReset() async {

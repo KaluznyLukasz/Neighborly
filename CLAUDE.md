@@ -39,8 +39,8 @@ This wraps `xcodebuild` (targeting `Neighborly` / iphonesimulator / Debug via `X
 4. Without `-derivedDataPath`, the app target's own build products default to `$(SRCROOT)/build` while SwiftPM package products go to DerivedData regardless, so the app's resource-embed phase can't find package resource bundles — the script sets `SYMROOT` to point both at the same place.
 
 The DerivedData dir is per checkout (`scripts/derived-data.sh` computes it), so git worktrees
-build side by side without sharing products. Xcode hashes the standardized path, so a worktree
-under `/private/tmp` or `/private/var` hashes as `/tmp/...` or `/var/...`, and the script does the same.
+build side by side without sharing products. The script drops a leading `/private` the way
+Xcode does, so worktrees under `/private/tmp` resolve to the right dir.
 
 Verified working end-to-end from a fully clean `DerivedData`, single pass, no manual retries. If it ever fails on something new, read the script's comments for context on what's already handled, fix forward, and update the script + this section rather than declaring CLI builds broken again.
 

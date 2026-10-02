@@ -23,6 +23,9 @@ final class NEIProfileViewModel {
     private let reviewService = NEIReviewService()
 
     func load(userId: String) async {
+        // Po wylogowaniu widok dostaje jeszcze `uid == ""`, a `document("")` rzuca wyjątek
+        // Obj-C, którego `try?` nie łapie — aplikacja leci (SIGABRT).
+        guard !userId.isEmpty else { return }
         isLoading = true
         errorMessage = nil
         async let userResult: NEIUser? = fetchUser(userId)
@@ -44,8 +47,8 @@ final class NEIProfileViewModel {
         }
     }
 
-    /// Zapisuje imię i bio. E-mail zmienia się osobno przez `NEIAuthService.requestEmailChange`,
-    /// bo Firebase Auth przełącza adres dopiero po kliknięciu linku weryfikacyjnego.
+    /// Zapisuje imię i bio. E-mail zmienia się osobno przez `NEIAuthService.changeEmail`,
+    /// bo żyje tylko w Firebase Auth (dokument profilu czyta każdy zalogowany).
     func updateProfile(userId: String, displayName: String, bio: String) async {
         isSaving = true
         errorMessage = nil

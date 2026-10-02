@@ -8,77 +8,89 @@ import SwiftUI
 struct NEISignUpView: View {
     @Bindable var vm: NEIAuthViewModel
     let onSwitchToSignIn: () -> Void
+    @FocusState private var focusedField: Field?
+
+    private enum Field {
+        case name, email, password, confirmPassword
+    }
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 24) {
-                header
+            VStack(spacing: 32) {
+                NEIAuthHeader(title: "Create Account", subtitle: "Join your neighborhood today.")
 
-                VStack(spacing: 16) {
-                    NEIInputField(
-                        label: "Full Name",
-                        placeholder: "Jan Kowalski",
-                        text: $vm.displayName
-                    )
+                VStack(alignment: .leading, spacing: 8) {
+                    NEIFieldGroup {
+                        TextField("Full Name", text: $vm.displayName)
+                            .textContentType(.name)
+                            .textInputAutocapitalization(.words)
+                            .submitLabel(.next)
+                            .focused($focusedField, equals: .name)
+                            .onSubmit { focusedField = .email }
 
-                    NEIInputField(
-                        label: "Email",
-                        placeholder: "you@example.com",
-                        text: $vm.email,
-                        keyboardType: .emailAddress
-                    )
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+                        TextField("Email", text: $vm.email)
+                            .textContentType(.username)
+                            .keyboardType(.emailAddress)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .submitLabel(.next)
+                            .focused($focusedField, equals: .email)
+                            .onSubmit { focusedField = .password }
 
-                    NEIInputField(
-                        label: "Password",
-                        placeholder: "Min. 6 characters",
-                        text: $vm.password,
-                        isSecure: true
-                    )
+                        SecureField("Password", text: $vm.password)
+                            .textContentType(.newPassword)
+                            .submitLabel(.next)
+                            .focused($focusedField, equals: .password)
+                            .onSubmit { focusedField = .confirmPassword }
 
-                    NEIInputField(
-                        label: "Confirm Password",
-                        placeholder: "••••••••",
-                        text: $vm.confirmPassword,
-                        isSecure: true
-                    )
+                        SecureField("Confirm Password", text: $vm.confirmPassword)
+                            .textContentType(.newPassword)
+                            .submitLabel(.go)
+                            .focused($focusedField, equals: .confirmPassword)
+                            .onSubmit(signUp)
+                    }
+
+                    Text("Use at least 6 characters.")
+                        .font(.footnote)
+                        .foregroundStyle(Color(.secondaryLabel))
+                        .padding(.horizontal, 16)
                 }
 
                 if let error = vm.errorMessage {
-                    Text(error)
-                        .font(.caption)
+                    Label(error, systemImage: "exclamationmark.circle.fill")
+                        .font(.footnote)
                         .foregroundStyle(.red)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
+            }
+            .padding(.horizontal, 24)
+            .padding(.vertical, 32)
+        }
+        .defaultScrollAnchor(.center, for: .alignment)
+        .scrollBounceBehavior(.basedOnSize)
+        .scrollDismissesKeyboard(.interactively)
+        .safeAreaInset(edge: .bottom) {
+            VStack(spacing: 16) {
+                NEIPrimaryButton("Create Account", isLoading: vm.isLoading, action: signUp)
 
-                NEIPrimaryButton("Create Account", isLoading: vm.isLoading) {
-                    Task { await vm.signUp() }
-                }
-
-                Button("Already have an account? Sign In") {
-                    onSwitchToSignIn()
+                Button(action: onSwitchToSignIn) {
+                    Text("Already have an account? \(Text("Sign In").fontWeight(.semibold).foregroundStyle(.tint))")
+                        .foregroundStyle(Color(.secondaryLabel))
                 }
                 .font(.subheadline)
-                .foregroundStyle(.green)
+                .accessibilityInputLabels(["Sign In", "Already have an account? Sign In"])
             }
-            .padding(24)
+            .padding(.horizontal, 24)
+            .padding(.top, 12)
+            .padding(.bottom, 8)
+            .background(Color(.systemGroupedBackground))
         }
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
+        .tint(.green)
     }
 
-    private var header: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "house.and.flag.fill")
-                .font(.system(size: 48))
-                .foregroundStyle(.green)
-            Text("Create Account")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-            Text("Join your neighborhood today.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
-        .padding(.top, 40)
+    private func signUp() {
+        focusedField = nil
+        Task { await vm.signUp() }
     }
 }
