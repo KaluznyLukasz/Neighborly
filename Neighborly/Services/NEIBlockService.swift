@@ -48,6 +48,8 @@ final class NEIBlockService {
     }
 
     func fetchBlockedUserIds(userId: String) async throws -> [String] {
+        // Widoki podają `currentUser?.uid ?? ""` — pusta ścieżka w `document("")` wywala aplikację
+        guard !userId.isEmpty else { return [] }
         let snapshot = try await blockedCollection(userId: userId).getDocuments()
         return snapshot.documents.compactMap { try? $0.data(as: NEIBlockedUser.self) }.map { $0.blockedUserId }
     }

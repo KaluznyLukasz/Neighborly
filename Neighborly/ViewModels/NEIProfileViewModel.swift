@@ -23,6 +23,9 @@ final class NEIProfileViewModel {
     private let reviewService = NEIReviewService()
 
     func load(userId: String) async {
+        // Po wylogowaniu widok dostaje jeszcze `uid == ""`, a `document("")` rzuca wyjątek
+        // Obj-C, którego `try?` nie łapie — aplikacja leci (SIGABRT).
+        guard !userId.isEmpty else { return }
         isLoading = true
         errorMessage = nil
         async let userResult: NEIUser? = fetchUser(userId)
