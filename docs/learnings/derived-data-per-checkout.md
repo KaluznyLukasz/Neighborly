@@ -13,3 +13,8 @@ path written as two 14-letter base-26 numbers. `info.plist` with `WorkspacePath`
 after the first build, which is too late for package resolution.
 **How to apply:** use `scripts/derived-data.sh` (it computes the hash) wherever a script needs
 DerivedData. Don't add new `Neighborly-*` globs.
+
+**`/private` paths:** Xcode hashes the standardized path, so a checkout at
+`/private/tmp/x` hashes as `/tmp/x`. Before the script stripped the prefix, a worktree in the
+session scratchpad (`/private/tmp/...`) failed with "no package checkouts in ... after package
+resolution": Xcode had put them in the `/tmp/...` dir.
