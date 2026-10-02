@@ -325,9 +325,9 @@ struct NEISettingsView: View {
         vm.user?.displayName ?? authService.currentUser?.displayName ?? ""
     }
 
-    // Reset hasła idzie na adres z Firebase Auth, więc on ma pierwszeństwo przed dokumentem profilu
+    // E-mail żyje tylko w Firebase Auth — dokument profilu jest publiczny
     private var accountEmail: String {
-        authService.currentUser?.email ?? vm.user?.email ?? ""
+        authService.currentUser?.email ?? ""
     }
 
     private var locationIsOn: Bool {

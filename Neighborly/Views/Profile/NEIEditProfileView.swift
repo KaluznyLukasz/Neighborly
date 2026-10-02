@@ -5,6 +5,7 @@
 
 import SwiftUI
 import PhotosUI
+import FirebaseAuth
 
 struct NEIEditProfileView: View {
     @Bindable var vm: NEIProfileViewModel
@@ -17,6 +18,11 @@ struct NEIEditProfileView: View {
     @State private var photosPickerItem: PhotosPickerItem?
     @State private var avatarPreview: UIImage?
     @State private var photoLoadError: String?
+    @State private var isChangingEmail = false
+    @State private var showPasswordPrompt = false
+    @State private var password = ""
+    @State private var pendingEmail: String?
+    private let originalEmail: String
     @Environment(\.dismiss) private var dismiss
 
     init(vm: NEIProfileViewModel, userId: String, currentDisplayName: String = "", currentEmail: String = "") {
@@ -24,7 +30,8 @@ struct NEIEditProfileView: View {
         self.userId = userId
         _displayName = State(initialValue: vm.user?.displayName ?? currentDisplayName)
         _bio         = State(initialValue: vm.user?.bio ?? "")
-        _email       = State(initialValue: vm.user?.email ?? currentEmail)
+        _email       = State(initialValue: currentEmail)
+        originalEmail = currentEmail
     }
 
     var body: some View {
@@ -38,19 +45,8 @@ struct NEIEditProfileView: View {
                         .textInputAutocapitalization(.never)
                     NEIInputField(label: "Bio", placeholder: "Tell neighbors about yourself...", text: $bio)
 
-                    NEIPrimaryButton("Save Changes", isLoading: vm.isSaving) {
-                        Task {
-                            await vm.updateProfile(
-                                userId: userId,
-                                displayName: displayName,
-                                bio: bio,
-                                email: email
-                            )
-                            if vm.errorMessage == nil {
-                                authService.refreshCurrentUser()
-                                dismiss()
-                            }
-                        }
+                    NEIPrimaryButton("Save Changes", isLoading: vm.isSaving || isChangingEmail) {
+                        Task { await save() }
                     }
                 }
                 .padding(24)
@@ -70,6 +66,22 @@ struct NEIEditProfileView: View {
                 Button("OK") { vm.errorMessage = nil; photoLoadError = nil }
             } message: {
                 Text(vm.errorMessage ?? photoLoadError ?? "")
+            }
+            .alert("Enter Your Password", isPresented: $showPasswordPrompt) {
+                SecureField("Password", text: $password)
+                    .textContentType(.password)
+                Button("Continue") { Task { await requestEmailChange(reauthenticating: true) } }
+                Button("Cancel", role: .cancel) { password = "" }
+            } message: {
+                Text("Confirm it's you to change your email.")
+            }
+            .alert("Check Your Inbox", isPresented: .init(
+                get: { pendingEmail != nil },
+                set: { if !$0 { pendingEmail = nil } }
+            ), presenting: pendingEmail) { _ in
+                Button("OK") { dismiss() }
+            } message: { address in
+                Text("We sent a link to \(address). Your email changes after you tap it, then you'll sign in again.")
             }
             .onChange(of: photosPickerItem) { _, item in
                 guard let item else { return }
@@ -93,6 +105,43 @@ struct NEIEditProfileView: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
+    }
+
+    private var trimmedEmail: String {
+        email.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func save() async {
+        await vm.updateProfile(userId: userId, displayName: displayName, bio: bio)
+        guard vm.errorMessage == nil else { return }
+        authService.refreshCurrentUser()
+        if trimmedEmail.isEmpty || trimmedEmail.caseInsensitiveCompare(originalEmail) == .orderedSame {
+            dismiss()
+        } else {
+            await requestEmailChange(reauthenticating: false)
+        }
+    }
+
+    private func requestEmailChange(reauthenticating: Bool) async {
+        isChangingEmail = true
+        defer { isChangingEmail = false }
+        do {
+            if reauthenticating {
+                let entered = password
+                password = ""
+                try await authService.reauthenticate(password: entered)
+            }
+            try await authService.requestEmailChange(to: trimmedEmail)
+            pendingEmail = trimmedEmail
+        } catch {
+            switch AuthErrorCode(rawValue: (error as NSError).code) {
+            case .requiresRecentLogin: showPasswordPrompt = true
+            case .wrongPassword, .invalidCredential: vm.errorMessage = "That password isn't right."
+            case .invalidEmail: vm.errorMessage = "That email address isn't valid."
+            case .emailAlreadyInUse: vm.errorMessage = "Another account already uses that email."
+            default: vm.errorMessage = error.localizedDescription
+            }
+        }
     }
 
     private var avatarSection: some View {

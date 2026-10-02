@@ -12,7 +12,6 @@ import FirebaseFirestore
 struct NEIUser: Identifiable, Codable {
     @DocumentID var id: String?
     var displayName: String
-    var email: String
     var avatarURL: String?
     var avatarBase64: String?
     var bio: String?

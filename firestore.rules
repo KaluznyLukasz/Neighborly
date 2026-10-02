@@ -9,10 +9,20 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // Profil czyta każdy zalogowany, więc nie może trzymać e-maila (ten żyje w Firebase Auth).
+    // Usunięcie starego pola `email` wolno, dopisanie lub zmiana — nie.
+    function keepsEmailOut() {
+      return !('email' in request.resource.data)
+        || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['email']);
+    }
+
     // /users/{userId}
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow write: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isSignedIn() && request.auth.uid == userId
+        && !('email' in request.resource.data);
+      allow update: if isSignedIn() && request.auth.uid == userId && keepsEmailOut();
+      allow delete: if isSignedIn() && request.auth.uid == userId;
       // Inny użytkownik może zaktualizować tylko reviewCount/rating po wystawieniu recenzji
       allow update: if isSignedIn() &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reviewCount', 'rating']);

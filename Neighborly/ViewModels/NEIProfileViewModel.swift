@@ -44,27 +44,23 @@ final class NEIProfileViewModel {
         }
     }
 
-    func updateProfile(userId: String, displayName: String, bio: String, email: String) async {
+    /// Zapisuje imię i bio. E-mail zmienia się osobno przez `NEIAuthService.requestEmailChange`,
+    /// bo Firebase Auth przełącza adres dopiero po kliknięciu linku weryfikacyjnego.
+    func updateProfile(userId: String, displayName: String, bio: String) async {
         isSaving = true
         errorMessage = nil
         do {
             try await db.collection("users").document(userId).setData([
                 "displayName": displayName,
-                "bio": bio,
-                "email": email
+                "bio": bio
             ], merge: true)
 
             user?.displayName = displayName
             user?.bio = bio
-            user?.email = email
 
             let changeRequest = Auth.auth().currentUser?.createProfileChangeRequest()
             changeRequest?.displayName = displayName
             try? await changeRequest?.commitChanges()
-
-            if email != Auth.auth().currentUser?.email {
-                try? await Auth.auth().currentUser?.updateEmail(to: email)
-            }
         } catch {
             errorMessage = error.localizedDescription
         }

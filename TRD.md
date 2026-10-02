@@ -44,7 +44,6 @@ Launch
 |---|---|---|
 | id | String | FirebaseAuth UID |
 | displayName | String | |
-| email | String | |
 | avatarURL | String? | Firebase Storage URL |
 | bio | String? | |
 | latitude | Double? | Last known location |
@@ -167,7 +166,7 @@ Neighborly/
 ### Collection Structure
 ```
 /users/{userId}
-  → fields: displayName, email, avatarURL, bio, latitude, longitude,
+  → fields: displayName, avatarURL, bio, latitude, longitude,
             rating, reviewCount, createdAt
 
 /offers/{offerId}
