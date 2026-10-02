@@ -55,6 +55,8 @@ struct Transaction: Identifiable, Codable {
     var message: String?
     // Termin ustawia właściciel po zaakceptowaniu; nil = bez terminu
     var dueDate: Date?
+    // true = liczy się też godzina z dueDate; nil/false = cały dzień (dueDate to początek dnia)
+    var dueHasTime: Bool?
     var createdAt: Date
     var updatedAt: Date
 
@@ -62,8 +64,61 @@ struct Transaction: Identifiable, Codable {
         offerCategory == nil || offerCategory == .items ? .returnDate : .plannedDate
     }
 
+    var hasDueTime: Bool { dueHasTime ?? false }
+
     var isOverdue: Bool {
         guard status == .accepted, dateKind == .returnDate, let dueDate else { return false }
-        return dueDate < Calendar.current.startOfDay(for: Date())
+        return NEIDueDate.isPast(dueDate, hasTime: hasDueTime)
+    }
+}
+
+// Wspólne formatowanie i logika terminu — lista, szczegóły i przypomnienia mówią to samo
+enum NEIDueDate {
+    // Termin bez godziny mija dopiero po końcu dnia
+    static func isPast(_ date: Date, hasTime: Bool, now: Date = Date(), calendar: Calendar = .current) -> Bool {
+        hasTime ? date < now : date < calendar.startOfDay(for: now)
+    }
+
+    // "Today", "Tomorrow at 15:00", "Thursday, 3 October" — dzień tygodnia tylko w ciągu tygodnia
+    static func dayText(_ date: Date, hasTime: Bool, now: Date = Date(), calendar: Calendar = .current) -> String {
+        let day: String
+        if calendar.isDate(date, inSameDayAs: now) {
+            day = "Today"
+        } else if let tomorrow = calendar.date(byAdding: .day, value: 1, to: now), calendar.isDate(date, inSameDayAs: tomorrow) {
+            day = "Tomorrow"
+        } else if let yesterday = calendar.date(byAdding: .day, value: -1, to: now), calendar.isDate(date, inSameDayAs: yesterday) {
+            day = "Yesterday"
+        } else if let days = daysBetween(now, date, calendar: calendar), (2...6).contains(days) {
+            day = date.formatted(.dateTime.weekday(.wide))
+        } else {
+            day = date.formatted(.dateTime.weekday(.wide).day().month(.wide))
+        }
+        return hasTime ? "\(day) at \(timeText(date))" : day
+    }
+
+    // Krótka wersja do wiersza listy: "Today", "Tomorrow", "Thu, 3 Oct"
+    static func shortDayText(_ date: Date, hasTime: Bool, now: Date = Date(), calendar: Calendar = .current) -> String {
+        let day: String
+        if calendar.isDate(date, inSameDayAs: now) {
+            day = "today"
+        } else if let tomorrow = calendar.date(byAdding: .day, value: 1, to: now), calendar.isDate(date, inSameDayAs: tomorrow) {
+            day = "tomorrow"
+        } else {
+            day = date.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated))
+        }
+        return hasTime ? "\(day) at \(timeText(date))" : day
+    }
+
+    static func timeText(_ date: Date) -> String {
+        date.formatted(date: .omitted, time: .shortened)
+    }
+
+    // Ile pełnych dni po terminie (0 = termin jest dziś lub później)
+    static func daysOverdue(_ date: Date, now: Date = Date(), calendar: Calendar = .current) -> Int {
+        max(0, daysBetween(date, now, calendar: calendar) ?? 0)
+    }
+
+    private static func daysBetween(_ from: Date, _ to: Date, calendar: Calendar) -> Int? {
+        calendar.dateComponents([.day], from: calendar.startOfDay(for: from), to: calendar.startOfDay(for: to)).day
     }
 }

@@ -17,7 +17,7 @@ REQUESTED="${1:-}"
 
 scripts/build.sh
 
-DD="$(ls -d ~/Library/Developer/Xcode/DerivedData/Neighborly-* 2>/dev/null | head -1)"
+DD="$(scripts/derived-data.sh)"
 APP="$DD/Build/Debug-iphonesimulator/Neighborly.app"
 [ -d "$APP" ] || { echo "error: built app not found at $APP" >&2; exit 1; }
 

@@ -38,11 +38,19 @@ struct NEISplashView: View {
     }
 }
 
+enum NEITab: Hashable {
+    case map, activity, profile, search
+}
+
 struct ContentView: View {
     @EnvironmentObject var authService: NEIAuthService
+    @Environment(\.scenePhase) private var scenePhase
     @State private var transactionVM = NEITransactionViewModel()
     @State private var locationManager = LocationManager()
     @State private var showSplash = true
+    @State private var selectedTab: NEITab = .map
+    @State private var wasInBackground = false
+    private let notificationRouter = NEINotificationRouter.shared
     @AppStorage("appearanceMode") private var appearanceMode: String = "system"
 
     private var colorScheme: ColorScheme? {
@@ -59,35 +67,48 @@ struct ContentView: View {
                 NEISplashView()
                     .transition(.opacity)
             } else if authService.isAuthenticated {
-                TabView {
+                TabView(selection: $selectedTab) {
                     NEIMapView()
                         .tabItem {
                             Label("Map", systemImage: "map.fill")
                         }
+                        .tag(NEITab.map)
 
-                    NEITransactionListView()
+                    NEITransactionListView(vm: transactionVM)
                         .tabItem {
                             Label("Activity", systemImage: "tray.fill")
                         }
                         .badge(transactionVM.pendingInboxCount > 0 ? transactionVM.pendingInboxCount : 0)
+                        .tag(NEITab.activity)
 
                     NEIProfileView()
                         .tabItem {
                             Label("Profile", systemImage: "person.crop.circle.fill")
                         }
+                        .tag(NEITab.profile)
 
                     NEISearchView()
                         .tabItem {
                             Label("Search", systemImage: "magnifyingglass")
                         }
+                        .tag(NEITab.search)
                 }
                 .environment(locationManager)
-                .task {
-                    if let uid = authService.currentUser?.uid {
-                        async let inbox: () = transactionVM.loadInbox(ownerId: uid)
-                        async let requests: () = transactionVM.loadMyRequests(requesterId: uid)
-                        _ = await (inbox, requests)
+                .task { await loadTransactions() }
+                // Po powrocie z tła: świeży badge i przypomnienia z terminami ustawionymi w międzyczasie
+                // (z tła aplikacja przechodzi przez .inactive, więc pamiętamy, że była w tle)
+                .onChange(of: scenePhase) { _, phase in
+                    if phase == .background {
+                        wasInBackground = true
+                        NEIReminderService.scheduleBackgroundRefresh()
+                    } else if phase == .active && wasInBackground {
+                        wasInBackground = false
+                        Task { await loadTransactions() }
                     }
+                }
+                // Tapnięte przypomnienie otwiera Activity; szczegóły otwiera już lista
+                .onChange(of: notificationRouter.pendingTransactionId, initial: true) { _, id in
+                    if id != nil { selectedTab = .activity }
                 }
             } else {
                 NEIAuthView(authService: authService)
@@ -96,6 +117,15 @@ struct ContentView: View {
         .preferredColorScheme(colorScheme)
         .animation(.easeInOut(duration: 0.4), value: showSplash)
         .animation(.easeInOut, value: authService.isAuthenticated)
+        // Przypomnienia są lokalne — po wylogowaniu nie mogą przyjść następnej osobie na tym telefonie
+        .onChange(of: authService.isAuthenticated) { _, isAuthenticated in
+            if !isAuthenticated {
+                selectedTab = .map
+                // Nowy view model: listy i badge poprzedniego konta nie przechodzą na następne
+                transactionVM = NEITransactionViewModel()
+                Task { await NEIReminderService.cancelAll() }
+            }
+        }
         .task {
             let start = Date()
             let authTimeout: TimeInterval = 5
@@ -107,6 +137,13 @@ struct ContentView: View {
             if remaining > 0 { try? await Task.sleep(for: .seconds(remaining)) }
             withAnimation { showSplash = false }
         }
+    }
+
+    private func loadTransactions() async {
+        guard let uid = authService.currentUser?.uid else { return }
+        async let inbox: () = transactionVM.loadInbox(ownerId: uid)
+        async let requests: () = transactionVM.loadMyRequests(requesterId: uid)
+        _ = await (inbox, requests)
     }
 }
 

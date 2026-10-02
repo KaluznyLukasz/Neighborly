@@ -330,7 +330,7 @@ struct NEISettingsView: View {
         if remindersOn && notificationStatus == .denied {
             return "Notifications are off for Neighborly. Turn them on in Settings to get reminders."
         }
-        return "Get a reminder the evening before and on the morning of a return date or planned day."
+        return "Get a reminder the evening before a return date or planned day, and again on the day."
     }
 
     private func radiusText(_ km: Double) -> String {

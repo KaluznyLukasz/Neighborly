@@ -34,9 +34,9 @@ fi
 echo "==> Resolving Swift Package dependencies"
 xcodebuild -resolvePackageDependencies -project "$PROJECT"
 
-DD="$(ls -d ~/Library/Developer/Xcode/DerivedData/Neighborly-* 2>/dev/null | head -1)"
-if [ -z "$DD" ]; then
-  echo "error: could not locate DerivedData dir for Neighborly after package resolution" >&2
+DD="$(scripts/derived-data.sh)"
+if [ ! -d "$DD/SourcePackages/checkouts" ]; then
+  echo "error: no package checkouts in $DD after package resolution" >&2
   exit 1
 fi
 

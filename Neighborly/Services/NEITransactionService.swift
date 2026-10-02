@@ -48,11 +48,14 @@ final class NEITransactionService {
         ])
     }
 
-    func setDueDate(transactionId: String, dueDate: Date?) async throws {
-        try await db.collection(collection).document(transactionId).updateData([
+    // dueDate == nil czyści termin razem z flagą godziny
+    func setDueDate(transactionId: String, dueDate: Date?, hasTime: Bool) async throws {
+        let fields: [String: Any] = [
             "dueDate": dueDate.map { Timestamp(date: $0) } ?? FieldValue.delete(),
+            "dueHasTime": dueDate == nil ? FieldValue.delete() as Any : hasTime,
             "updatedAt": Timestamp(date: Date())
-        ])
+        ]
+        try await db.collection(collection).document(transactionId).updateData(fields)
     }
 
     func fetchTransaction(id: String) async throws -> Transaction? {

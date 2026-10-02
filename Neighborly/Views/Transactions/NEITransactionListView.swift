@@ -8,13 +8,16 @@ import FirebaseAuth
 
 struct NEITransactionListView: View {
     @EnvironmentObject var authService: NEIAuthService
-    @State private var vm = NEITransactionViewModel()
+    // Wspólny z ContentView — badge zakładki zmienia się od razu po akceptacji
+    let vm: NEITransactionViewModel
     @State private var myOffers: [Offer] = []
     @State private var selectedTab = 0
     @State private var selectedTransaction: Transaction?
     @State private var isLoadingOffers = false
+    @State private var hasLoaded = false
 
     private let offerService = NEIOfferService()
+    private let notificationRouter = NEINotificationRouter.shared
     private var uid: String { authService.currentUser?.uid ?? "" }
     private var userName: String { authService.currentUser?.displayName ?? "User" }
 
@@ -58,8 +61,32 @@ struct NEITransactionListView: View {
             } message: {
                 Text(vm.errorMessage ?? "")
             }
-            .task { await loadAll() }
+            .task {
+                await loadAll()
+                hasLoaded = true
+                await openPendingTransaction(reload: false)
+            }
+            .onChange(of: notificationRouter.pendingTransactionId) {
+                Task { await openPendingTransaction(reload: true) }
+            }
         }
+    }
+
+    // Otwiera transakcję z tapniętego przypomnienia. Listy pobieramy od nowa, bo mogły się
+    // zestarzeć, gdy aplikacja była w tle — a szczegóły czytają termin z list.
+    private func openPendingTransaction(reload: Bool) async {
+        guard hasLoaded, let id = notificationRouter.pendingTransactionId else { return }
+        notificationRouter.pendingTransactionId = nil
+        if reload { await loadAll() }
+        let transaction: Transaction?
+        if let listed = vm.current(id: id) {
+            transaction = listed
+        } else {
+            transaction = try? await NEITransactionService().fetchTransaction(id: id)
+        }
+        guard let transaction else { return }
+        selectedTab = transaction.ownerId == uid ? 0 : 1
+        selectedTransaction = transaction
     }
 
     private var isLoading: Bool {
@@ -182,14 +209,9 @@ private struct TransactionRow: View {
                         .lineLimit(1)
                 }
                 if transaction.status == .accepted, let dueDate = transaction.dueDate {
-                    Label(
-                        transaction.isOverdue
-                            ? "Overdue · \(dueDate.formatted(.dateTime.day().month()))"
-                            : "\(transaction.dateKind == .returnDate ? "Return by" : "Planned for") \(dueDate.formatted(.dateTime.day().month()))",
-                        systemImage: transaction.isOverdue ? "exclamationmark.triangle.fill" : "calendar"
-                    )
-                    .font(.caption)
-                    .foregroundStyle(transaction.isOverdue ? .red : .secondary)
+                    Label(dueText(dueDate), systemImage: transaction.isOverdue ? "exclamationmark.triangle.fill" : "calendar")
+                        .font(.caption)
+                        .foregroundStyle(dueColor(dueDate))
                 } else {
                     Text(transaction.createdAt.formatted(.relative(presentation: .named)))
                         .font(.caption)
@@ -202,5 +224,18 @@ private struct TransactionRow: View {
         }
         .padding(.vertical, 4)
         .accessibilityElement(children: .combine)
+    }
+
+    // "Due back tomorrow at 15:00", "Planned for Thu, 3 Oct", "Was due back Mon, 30 Sep"
+    private func dueText(_ date: Date) -> String {
+        let day = NEIDueDate.shortDayText(date, hasTime: transaction.hasDueTime)
+        if transaction.isOverdue { return "Was due back \(day)" }
+        return transaction.dateKind == .returnDate ? "Due back \(day)" : "Planned for \(day)"
+    }
+
+    // Czerwony po terminie, pomarańczowy w dniu terminu
+    private func dueColor(_ date: Date) -> Color {
+        if transaction.isOverdue { return .red }
+        return Calendar.current.isDateInToday(date) ? .orange : .secondary
     }
 }
