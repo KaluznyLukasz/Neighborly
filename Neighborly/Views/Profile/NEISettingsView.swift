@@ -56,6 +56,7 @@ struct NEISettingsView: View {
         }
         .onChange(of: searchRadiusKm) { _, newValue in
             NEIUserPreferences.searchRadiusKm = newValue
+            NEIWidgetSync.refreshAlerts()
         }
         .onChange(of: remindersOn) { _, enabled in
             Task { await applyReminderPreference(enabled) }

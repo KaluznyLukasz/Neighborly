@@ -83,12 +83,14 @@ enum NEIReminderService {
         }
     }
 
-    // Pobiera transakcje od nowa i planuje przypomnienia — gdy żaden widok nie ma ich załadowanych
+    // Pobiera transakcje od nowa, planuje przypomnienia i odświeża widżet — gdy żaden widok
+    // nie ma ich załadowanych
     static func resync(userId: String) async {
         let service = NEITransactionService()
         async let inbox = try? service.fetchInbox(ownerId: userId)
         async let requests = try? service.fetchMyRequests(requesterId: userId)
         guard let inbox = await inbox, let requests = await requests else { return }
+        NEIWidgetSync.update(transactions: inbox + requests, userId: userId)
         await sync(transactions: inbox + requests, userId: userId)
     }
 

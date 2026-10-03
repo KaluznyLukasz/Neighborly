@@ -52,7 +52,11 @@ final class NEIAlertNotifier {
         stop()
         self.userId = userId
         listeningSince = Date()
-        Task { blocked = Set((try? await NEIBlockService().fetchBlockedUserIds(userId: userId)) ?? []) }
+        Task {
+            blocked = Set((try? await NEIBlockService().fetchBlockedUserIds(userId: userId)) ?? [])
+            // Pierwsza lista ogłoszeń mogła przyjść przed listą zablokowanych
+            NEIWidgetSync.update(blocked: blocked)
+        }
 
         activeListener = service.listenActive(
             onChange: { [weak self] alerts in
@@ -105,6 +109,8 @@ final class NEIAlertNotifier {
     // pierwszy odczyt — ten często przychodzi z pamięci podręcznej, a pełny dopiero po nim.
     private func activeAlertsChanged(_ alerts: [NeighborhoodAlert]) {
         guard let userId else { return }
+        // Ten sam nasłuch zasila widżet z ogłoszeniami
+        NEIWidgetSync.update(alerts: alerts, blocked: blocked)
         Task { await handleActive(alerts, userId: userId, blocked: blocked, silentBefore: listeningSince) }
     }
 
@@ -145,6 +151,7 @@ final class NEIAlertNotifier {
     func checkInBackground(userId: String) async {
         guard let active = try? await service.fetchActive() else { return }
         let blocked = Set((try? await NEIBlockService().fetchBlockedUserIds(userId: userId)) ?? [])
+        NEIWidgetSync.update(alerts: active, blocked: blocked)
         await handleActive(active, userId: userId, blocked: blocked, silentBefore: nil)
 
         for alert in active where alert.authorId == userId {

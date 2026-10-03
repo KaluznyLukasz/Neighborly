@@ -17,8 +17,8 @@ final class NEITransactionViewModel {
     private(set) var pendingInboxCount = 0
 
     private let transactionService = NEITransactionService()
-    // Przypomnienia synchronizujemy dopiero, gdy znamy obie listy — inaczej częściowy stan
-    // skasowałby przypomnienia drugiej roli
+    // Przypomnienia i widżet synchronizujemy dopiero, gdy znamy obie listy — inaczej częściowy
+    // stan skasowałby przypomnienia drugiej roli
     private var userId: String?
     private var hasLoadedInbox = false
     private var hasLoadedRequests = false
@@ -32,7 +32,7 @@ final class NEITransactionViewModel {
             inbox = try await transactionService.fetchInbox(ownerId: ownerId)
             userId = ownerId
             hasLoadedInbox = true
-            await syncReminders()
+            await syncRemindersAndWidgets()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -46,7 +46,7 @@ final class NEITransactionViewModel {
             myRequests = try await transactionService.fetchMyRequests(requesterId: requesterId)
             userId = requesterId
             hasLoadedRequests = true
-            await syncReminders()
+            await syncRemindersAndWidgets()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -90,7 +90,7 @@ final class NEITransactionViewModel {
             // Pytamy o zgodę, gdy właściciel ustawia termin i widać, po co ona jest.
             // Przed synchronizacją, żeby ta nie zdążyła poprosić o cichą zgodę.
             if dueDate != nil { await NEIReminderService.requestAuthorizationIfNeeded() }
-            await syncReminders()
+            await syncRemindersAndWidgets()
         }
 
         Task {
@@ -103,7 +103,7 @@ final class NEITransactionViewModel {
                     $0.dueDate = previous.dueDate
                     $0.dueHasTime = previous.dueHasTime
                 }
-                await syncReminders()
+                await syncRemindersAndWidgets()
             }
         }
     }
@@ -118,8 +118,9 @@ final class NEITransactionViewModel {
         if let i = myRequests.firstIndex(where: { $0.id == id }) { change(&myRequests[i]) }
     }
 
-    private func syncReminders() async {
+    private func syncRemindersAndWidgets() async {
         guard hasLoadedInbox, hasLoadedRequests, let userId else { return }
+        NEIWidgetSync.update(transactions: inbox + myRequests, userId: userId)
         await NEIReminderService.sync(transactions: inbox + myRequests, userId: userId)
     }
 
@@ -148,7 +149,7 @@ final class NEITransactionViewModel {
         do {
             try await transactionService.updateStatus(transactionId: id, status: status)
             update(id: id, status: status)
-            await syncReminders()
+            await syncRemindersAndWidgets()
             return true
         } catch {
             errorMessage = error.localizedDescription

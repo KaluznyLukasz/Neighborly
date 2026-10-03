@@ -122,6 +122,17 @@ struct ContentView: View {
             }
         }
         .preferredColorScheme(colorScheme)
+        // Tapnięty widżet: te same ścieżki co tapnięte powiadomienie. Przy starcie od zera
+        // router czeka, aż pojawi się TabView (onChange z initial: true).
+        .onOpenURL { url in
+            guard let link = NEIWidgetLink(url: url) else { return }
+            switch link {
+            case .activity: selectedTab = .activity
+            case .transaction(let id): notificationRouter.pendingTransactionId = id
+            case .alerts: notificationRouter.pendingAlert = NEIAlertRoute(alertId: "", viewerId: nil)
+            case .alert(let id): notificationRouter.pendingAlert = NEIAlertRoute(alertId: id, viewerId: nil)
+            }
+        }
         .animation(.easeInOut(duration: 0.4), value: showSplash)
         .animation(.easeInOut, value: authService.isAuthenticated)
         // Przypomnienia są lokalne — po wylogowaniu nie mogą przyjść następnej osobie na tym telefonie
@@ -131,6 +142,7 @@ struct ContentView: View {
                 // Nowy view model: listy i badge poprzedniego konta nie przechodzą na następne
                 transactionVM = NEITransactionViewModel()
                 NEIAlertNotifier.shared.signOut()
+                NEIWidgetSync.clear()
                 Task { await NEIReminderService.cancelAll() }
             }
         }
