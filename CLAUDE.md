@@ -54,6 +54,8 @@ Early-stage iOS app (SwiftUI + Firebase iOS SDK 12.13.0).
 
 **Notifications:** all local, no push backend. `NEIReminderService` (transaction due dates), `NEIAlertNotifier` (new nearby alerts + alert chat replies) and `NEINotificationRouter` (tap → screen). They run on Firestore listeners while the app is open and on `BGAppRefreshTask` (`refreshInBackground`) when it's closed.
 
+**Widgets:** `NeighborlyWidgets/` (target `NeighborlyWidgetsExtension`) holds two widgets, Up Next and Alerts, each in small and medium. The extension has no Firebase. The app writes JSON snapshots to the App Group `group.app.me.kaluzny.lukasz.Neighborly` through `NEIWidgetSync`, and the widgets read them with `NEIWidgetStore`. `NEIWidgetSync` runs where reminders and alert notifications already sync (transaction lists, the alert listener, background refresh), on location and radius changes, and clears on sign-out. A tap opens a `neighborly://` URL that `ContentView.onOpenURL` routes like a notification tap. `Shared/` compiles into both targets (`OfferCategory`, `AlertKind`, `NEIDueDate`, colors, snapshot types), so keep Firebase out of it. The extension doesn't use the app's default `MainActor` isolation.
+
 **Models:** `Neighborly/Models/` — `NEIOffer.swift` defines `Offer` (Identifiable, Codable). Uses `CLLocationCoordinate2D` computed from stored `latitude`/`longitude` doubles. `id` is optional (assigned by Firestore on write).
 
 **Firebase config:** `GoogleService-Info.plist` in the app target — do not commit changes to this file with real credentials.

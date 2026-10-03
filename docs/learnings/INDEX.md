@@ -5,6 +5,7 @@ learning under `docs/learnings/`. Add with `/nei-learn`; promote recurring rules
 `CLAUDE.md` with `/nei-distill`.
 
 <!-- newest first -->
+- [widget-views-render-check-without-xcode](widget-views-render-check-without-xcode.md) — widgetFamily is get-only and simctl can't add widgets; render temp copies of the widget views in the app behind a launch arg
 - [firestore-empty-document-path-crashes](firestore-empty-document-path-crashes.md) — document("") throws an uncatchable Obj-C exception (SIGABRT); guard `uid ?? ""` before building a path
 - [firestore-first-snapshot-may-be-cache](firestore-first-snapshot-may-be-cache.md) — a listener's first snapshot is often cached, the server one follows; filter by document timestamps, not snapshot order
 - [backgroundtask-builds-scene-before-launch](backgroundtask-builds-scene-before-launch.md) — .backgroundTask on the scene builds StateObjects before didFinishLaunching; FirebaseApp.configure() lives in App.init

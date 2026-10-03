@@ -226,11 +226,8 @@ private struct TransactionRow: View {
         .accessibilityElement(children: .combine)
     }
 
-    // "Due back tomorrow at 15:00", "Planned for Thu, 3 Oct", "Was due back Mon, 30 Sep"
     private func dueText(_ date: Date) -> String {
-        let day = NEIDueDate.shortDayText(date, hasTime: transaction.hasDueTime)
-        if transaction.isOverdue { return "Was due back \(day)" }
-        return transaction.dateKind == .returnDate ? "Due back \(day)" : "Planned for \(day)"
+        NEIDueDate.rowText(date, hasTime: transaction.hasDueTime, isReturn: transaction.dateKind == .returnDate)
     }
 
     // Czerwony po terminie, pomarańczowy w dniu terminu

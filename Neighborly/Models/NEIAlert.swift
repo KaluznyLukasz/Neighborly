@@ -6,47 +6,8 @@
 import Foundation
 import CoreLocation
 import FirebaseFirestore
-import SwiftUI
 
-enum AlertKind: String, Codable, CaseIterable, Identifiable {
-    case lostPet   = "lostPet"
-    case foundItem = "foundItem"
-    case safety    = "safety"
-    case utilities = "utilities"
-    case general   = "general"
-
-    var id: String { rawValue }
-
-    var displayName: String {
-        switch self {
-        case .lostPet:   return "Lost Pet"
-        case .foundItem: return "Lost & Found"
-        case .safety:    return "Safety"
-        case .utilities: return "Outage & Works"
-        case .general:   return "Heads Up"
-        }
-    }
-
-    var systemImage: String {
-        switch self {
-        case .lostPet:   return "pawprint.fill"
-        case .foundItem: return "magnifyingglass"
-        case .safety:    return "exclamationmark.shield.fill"
-        case .utilities: return "bolt.trianglebadge.exclamationmark.fill"
-        case .general:   return "megaphone.fill"
-        }
-    }
-
-    var color: Color {
-        switch self {
-        case .lostPet:   return .neiAmber
-        case .foundItem: return .neiBlue
-        case .safety:    return .neiRed
-        case .utilities: return .neiPurple
-        case .general:   return .neiGreen
-        }
-    }
-}
+// AlertKind jest w Shared/NEIAlertKind.swift (wspólne z widżetami)
 
 // Krótkotrwałe ogłoszenie dla sąsiadów w okolicy — wygasa samo po `lifetime`
 struct NeighborhoodAlert: Identifiable, Codable {

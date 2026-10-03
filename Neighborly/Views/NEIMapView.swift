@@ -48,6 +48,7 @@ final class LocationManager: NSObject, CLLocationManagerDelegate {
         guard let location = locations.last else { return }
         userCoordinate = location.coordinate
         NEIUserPreferences.lastKnownLocation = (location.coordinate.latitude, location.coordinate.longitude)
+        NEIWidgetSync.refreshAlerts()
         manager.stopUpdatingLocation()
     }
 }

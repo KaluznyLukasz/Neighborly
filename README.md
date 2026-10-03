@@ -33,6 +33,7 @@ each other when it's done.
 - 📣 **Neighborhood alerts** — lost pets, safety, outages. Gone after 48 hours.
 - 🔍 **Search** — by category, within your radius.
 - 🔔 **Notifications** — reminders, nearby alerts and replies, even with the app closed.
+- 🧩 **Widgets** — your next agreed dates and the latest alerts nearby, in small and medium.
 
 ## Tech
 

@@ -11,17 +11,66 @@
 		FAD2A0CB2FB24B610059AFA0 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = FAD2A0CA2FB24B610059AFA0 /* FirebaseAuth */; };
 		FAD2A0CD2FB24B610059AFA0 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = FAD2A0CC2FB24B610059AFA0 /* FirebaseFirestore */; };
 		FAFC78622FB34EB7009D8114 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = FAFC78612FB34EB7009D8114 /* FirebaseStorage */; };
+		FA7C0A012F9E000100A1B2C3 /* NeighborlyWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = FA7C0A042F9E000100A1B2C3 /* NeighborlyWidgetsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		FA7C0A022F9E000100A1B2C3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = FAEE8A5C2FB2424E00E57C48 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = FA7C0A092F9E000100A1B2C3;
+			remoteInfo = NeighborlyWidgetsExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		FA7C0A032F9E000100A1B2C3 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				FA7C0A012F9E000100A1B2C3 /* NeighborlyWidgetsExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		FA1F1B04303EF51E004AB8A1 /* Neighborly.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Neighborly.xcodeproj; sourceTree = SOURCE_ROOT; };
 		FAEE8A642FB2424E00E57C48 /* Neighborly.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Neighborly.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		FA7C0A042F9E000100A1B2C3 /* NeighborlyWidgetsExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = NeighborlyWidgetsExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		FA7C0A052F9E000100A1B2C3 /* Exceptions for "NeighborlyWidgets" folder in "NeighborlyWidgetsExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = FA7C0A092F9E000100A1B2C3 /* NeighborlyWidgetsExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		FAEE8A662FB2424E00E57C48 /* Neighborly */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Neighborly;
+			sourceTree = "<group>";
+		};
+		FA7C0A062F9E000100A1B2C3 /* NeighborlyWidgets */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				FA7C0A052F9E000100A1B2C3 /* Exceptions for "NeighborlyWidgets" folder in "NeighborlyWidgetsExtension" target */,
+			);
+			path = NeighborlyWidgets;
+			sourceTree = "<group>";
+		};
+		FA7C0A072F9E000100A1B2C3 /* Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Shared;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -38,6 +87,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		FA7C0A082F9E000100A1B2C3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -51,6 +107,8 @@
 			children = (
 				FA1F1B04303EF51E004AB8A1 /* Neighborly.xcodeproj */,
 				FAEE8A662FB2424E00E57C48 /* Neighborly */,
+				FA7C0A062F9E000100A1B2C3 /* NeighborlyWidgets */,
+				FA7C0A072F9E000100A1B2C3 /* Shared */,
 				FAFC78602FB34EB7009D8114 /* Frameworks */,
 				FAEE8A652FB2424E00E57C48 /* Products */,
 			);
@@ -60,6 +118,7 @@
 			isa = PBXGroup;
 			children = (
 				FAEE8A642FB2424E00E57C48 /* Neighborly.app */,
+				FA7C0A042F9E000100A1B2C3 /* NeighborlyWidgetsExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -81,13 +140,16 @@
 				FAEE8A602FB2424E00E57C48 /* Sources */,
 				FAEE8A612FB2424E00E57C48 /* Frameworks */,
 				FAEE8A622FB2424E00E57C48 /* Resources */,
+				FA7C0A032F9E000100A1B2C3 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				FA7C0A0C2F9E000100A1B2C3 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				FAEE8A662FB2424E00E57C48 /* Neighborly */,
+				FA7C0A072F9E000100A1B2C3 /* Shared */,
 			);
 			name = Neighborly;
 			packageProductDependencies = (
@@ -100,6 +162,27 @@
 			productReference = FAEE8A642FB2424E00E57C48 /* Neighborly.app */;
 			productType = "com.apple.product-type.application";
 		};
+		FA7C0A092F9E000100A1B2C3 /* NeighborlyWidgetsExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FA7C0A0F2F9E000100A1B2C3 /* Build configuration list for PBXNativeTarget "NeighborlyWidgetsExtension" */;
+			buildPhases = (
+				FA7C0A0B2F9E000100A1B2C3 /* Sources */,
+				FA7C0A082F9E000100A1B2C3 /* Frameworks */,
+				FA7C0A0A2F9E000100A1B2C3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				FA7C0A062F9E000100A1B2C3 /* NeighborlyWidgets */,
+				FA7C0A072F9E000100A1B2C3 /* Shared */,
+			);
+			name = NeighborlyWidgetsExtension;
+			productName = NeighborlyWidgetsExtension;
+			productReference = FA7C0A042F9E000100A1B2C3 /* NeighborlyWidgetsExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -111,6 +194,9 @@
 				LastUpgradeCheck = 2620;
 				TargetAttributes = {
 					FAEE8A632FB2424E00E57C48 = {
+						CreatedOnToolsVersion = 26.2;
+					};
+					FA7C0A092F9E000100A1B2C3 = {
 						CreatedOnToolsVersion = 26.2;
 					};
 				};
@@ -139,12 +225,20 @@
 			projectRoot = "";
 			targets = (
 				FAEE8A632FB2424E00E57C48 /* Neighborly */,
+				FA7C0A092F9E000100A1B2C3 /* NeighborlyWidgetsExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		FAEE8A622FB2424E00E57C48 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FA7C0A0A2F9E000100A1B2C3 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -161,7 +255,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		FA7C0A0B2F9E000100A1B2C3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		FA7C0A0C2F9E000100A1B2C3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = FA7C0A092F9E000100A1B2C3 /* NeighborlyWidgetsExtension */;
+			targetProxy = FA7C0A022F9E000100A1B2C3 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		FAEE8A6D2FB2424F00E57C48 /* Debug */ = {
@@ -290,6 +399,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Neighborly/Neighborly.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 8L27R45F5T;
@@ -325,6 +435,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Neighborly/Neighborly.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 8L27R45F5T;
@@ -355,6 +466,64 @@
 			};
 			name = Release;
 		};
+		FA7C0A0D2F9E000100A1B2C3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = NeighborlyWidgets/NeighborlyWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8L27R45F5T;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NeighborlyWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Neighborly;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.me.kaluzny.lukasz.Neighborly.Widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		FA7C0A0E2F9E000100A1B2C3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = NeighborlyWidgets/NeighborlyWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8L27R45F5T;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NeighborlyWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Neighborly;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.me.kaluzny.lukasz.Neighborly.Widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -372,6 +541,15 @@
 			buildConfigurations = (
 				FAEE8A702FB2424F00E57C48 /* Debug */,
 				FAEE8A712FB2424F00E57C48 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		FA7C0A0F2F9E000100A1B2C3 /* Build configuration list for PBXNativeTarget "NeighborlyWidgetsExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FA7C0A0D2F9E000100A1B2C3 /* Debug */,
+				FA7C0A0E2F9E000100A1B2C3 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
