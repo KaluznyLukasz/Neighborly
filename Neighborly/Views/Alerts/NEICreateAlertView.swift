@@ -138,6 +138,15 @@ struct NEICreateAlertView: View {
             }
         }
         .presentationDetents([.medium, .large])
+        // Alert listy ogłoszeń jest pod arkuszem i się nie pokaże — błąd zapisu (np. filtr treści) tutaj
+        .alert("Couldn't Post Alert", isPresented: Binding(
+            get: { vm.errorMessage != nil },
+            set: { if !$0 { vm.errorMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(vm.errorMessage ?? "")
+        }
     }
 
     private func post() async {

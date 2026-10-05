@@ -9,6 +9,12 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // Czy userId zablokował zalogowanego. Lista blokad jest prywatna, ale reguły mogą ją czytać —
+    // zablokowany nie napisze ani nie złoży prośby, choć nie wie, że go zablokowano.
+    function isBlockedBy(userId) {
+      return exists(/databases/$(database)/documents/users/$(userId)/blocked/$(request.auth.uid));
+    }
+
     // Profil czyta każdy zalogowany, więc nie może trzymać e-maila (ten żyje w Firebase Auth).
     // Usunięcie starego pola `email` wolno, dopisanie lub zmiana — nie.
     function keepsEmailOut() {
@@ -56,6 +62,7 @@ service cloud.firestore {
       allow create: if isSignedIn() &&
         request.resource.data.requesterId == request.auth.uid &&
         request.resource.data.ownerId != request.auth.uid &&
+        !isBlockedBy(request.resource.data.ownerId) &&
         !exists(/databases/$(database)/documents/transactions/$(transactionId));
       allow update: if isSignedIn() &&
         (resource.data.ownerId == request.auth.uid || resource.data.requesterId == request.auth.uid);
@@ -66,15 +73,26 @@ service cloud.firestore {
 
       // /transactions/{transactionId}/messages/{messageId} — czat powiązany z aplikacją
       match /messages/{messageId} {
+        function transactionData() {
+          return get(/databases/$(database)/documents/transactions/$(transactionId)).data;
+        }
+
         function isParticipant() {
-          let t = get(/databases/$(database)/documents/transactions/$(transactionId)).data;
-          return t.ownerId == request.auth.uid || t.requesterId == request.auth.uid;
+          return transactionData().ownerId == request.auth.uid || transactionData().requesterId == request.auth.uid;
+        }
+
+        function otherParty() {
+          return transactionData().ownerId == request.auth.uid ? transactionData().requesterId : transactionData().ownerId;
         }
 
         allow read: if isSignedIn() && isParticipant();
         allow create: if isSignedIn() && isParticipant() &&
-          request.resource.data.senderId == request.auth.uid;
-        allow update, delete: if false;
+          request.resource.data.senderId == request.auth.uid &&
+          !isBlockedBy(otherParty());
+        allow update: if false;
+        // Tylko przy kasowaniu zakończonej transakcji (usuwanie konta najpierw ją anuluje)
+        allow delete: if isSignedIn() && isParticipant() &&
+          transactionData().status in ['rejected', 'cancelled', 'completed'];
       }
     }
 
@@ -94,25 +112,32 @@ service cloud.firestore {
 
       // /alerts/{alertId}/threads/{viewerId} — rozmowa sąsiada (viewerId) z autorem ogłoszenia
       match /threads/{viewerId} {
+        function alertAuthorId() {
+          return get(/databases/$(database)/documents/alerts/$(alertId)).data.authorId;
+        }
+
         function isThreadParticipant() {
-          return request.auth.uid == viewerId ||
-            get(/databases/$(database)/documents/alerts/$(alertId)).data.authorId == request.auth.uid;
+          return request.auth.uid == viewerId || alertAuthorId() == request.auth.uid;
         }
 
         allow read: if isSignedIn() && isThreadParticipant();
         // Wątek zakłada sąsiad; autor może go tylko aktualizować (odpowiedź)
         allow create: if isSignedIn() && request.auth.uid == viewerId &&
-          request.auth.uid != get(/databases/$(database)/documents/alerts/$(alertId)).data.authorId;
+          request.auth.uid != alertAuthorId() &&
+          !isBlockedBy(alertAuthorId());
         allow update: if isSignedIn() && isThreadParticipant();
-        allow delete: if false;
+        // Usunięcie ogłoszenia albo konta zabiera wątki ze sobą
+        allow delete: if isSignedIn() && isThreadParticipant();
 
         match /messages/{messageId} {
           allow read: if isSignedIn() && isThreadParticipant();
           allow create: if isSignedIn() && isThreadParticipant() &&
             request.resource.data.senderId == request.auth.uid &&
             request.resource.data.text is string &&
-            request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 1000;
-          allow update, delete: if false;
+            request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 1000 &&
+            !isBlockedBy(request.auth.uid == viewerId ? alertAuthorId() : viewerId);
+          allow update: if false;
+          allow delete: if isSignedIn() && isThreadParticipant();
         }
       }
     }
@@ -121,7 +146,34 @@ service cloud.firestore {
     match /reviews/{reviewId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.reviewerId == request.auth.uid;
-      allow update, delete: if false;
+      allow update: if false;
+      // Autor kasuje swoje recenzje tylko przy usuwaniu konta (NEIAccountDeletionService)
+      allow delete: if isSignedIn() && resource.data.reviewerId == request.auth.uid;
+    }
+
+    // Własne wiadomości ze wszystkich rozmów naraz (collectionGroup) — usuwanie konta szuka
+    // tak wiadomości w wątkach przy cudzych ogłoszeniach. Wymaga wyjątku indeksu na senderId.
+    match /{path=**}/messages/{messageId} {
+      allow read: if isSignedIn() && resource.data.senderId == request.auth.uid;
+    }
+
+    // /reports/{reportId} — zgłoszenia treści (wytyczna App Store 1.2). Tylko zapis;
+    // moderator czyta je w konsoli Firebase (docs/moderation.md).
+    match /reports/{reportId} {
+      allow create: if isSignedIn() &&
+        request.resource.data.keys().hasOnly(['reporterId', 'targetType', 'targetId', 'targetOwnerId',
+          'excerpt', 'reason', 'status', 'createdAt']) &&
+        request.resource.data.reporterId == request.auth.uid &&
+        request.resource.data.targetType in ['offer', 'alert', 'user', 'message', 'review'] &&
+        request.resource.data.reason in ['spam', 'inappropriate', 'harassment', 'dangerous', 'other'] &&
+        request.resource.data.targetId is string &&
+        request.resource.data.targetId.size() > 0 && request.resource.data.targetId.size() <= 300 &&
+        request.resource.data.targetOwnerId is string &&
+        request.resource.data.targetOwnerId != request.auth.uid &&
+        request.resource.data.excerpt is string && request.resource.data.excerpt.size() <= 500 &&
+        request.resource.data.status == 'open' &&
+        request.resource.data.createdAt is timestamp;
+      allow read, update, delete: if false;
     }
   }
 }

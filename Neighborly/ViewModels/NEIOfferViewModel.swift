@@ -25,6 +25,10 @@ final class NEIOfferViewModel {
 
     func createOffer(ownerId: String, fallbackCoordinate: CLLocationCoordinate2D) async {
         guard validate() else { return }
+        guard !NEIContentFilter.isObjectionable(title, description) else {
+            errorMessage = NEIContentFilter.rejectionMessage
+            return
+        }
         isLoading = true
         errorMessage = nil
 

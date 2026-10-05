@@ -56,8 +56,19 @@ final class NEIAlertService {
         }
     }
 
+    // Razem z wątkami i wiadomościami — podkolekcje nie znikają z dokumentem, a bez ogłoszenia
+    // nikt by ich już nie przeczytał ani nie usunął (reguły sprawdzają autora ogłoszenia)
     func delete(id: String) async throws {
-        try await db.collection(collection).document(id).delete()
+        guard !id.isEmpty else { return }
+        let alert = db.collection(collection).document(id)
+        for thread in try await alert.collection("threads").getDocuments().documents {
+            let messages = try await thread.reference.collection("messages").getDocuments()
+            let batch = db.batch()
+            messages.documents.forEach { batch.deleteDocument($0.reference) }
+            batch.deleteDocument(thread.reference)
+            try await batch.commit()
+        }
+        try await alert.delete()
     }
 
     private func threads(alertId: String) -> CollectionReference {

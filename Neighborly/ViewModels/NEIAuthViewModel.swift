@@ -12,6 +12,7 @@ final class NEIAuthViewModel {
     var password = ""
     var displayName = ""
     var confirmPassword = ""
+    var acceptedTerms = false
 
     var isLoading = false
     var errorMessage: String?
@@ -91,6 +92,14 @@ final class NEIAuthViewModel {
             }
             if password != confirmPassword {
                 errorMessage = "Passwords don't match."
+                return false
+            }
+            if NEIContentFilter.isObjectionable(displayName) {
+                errorMessage = NEIContentFilter.rejectionMessage
+                return false
+            }
+            if !acceptedTerms {
+                errorMessage = "To create an account, confirm you're \(NEILegal.minimumAge) or older and agree to the Terms of Use."
                 return false
             }
         }

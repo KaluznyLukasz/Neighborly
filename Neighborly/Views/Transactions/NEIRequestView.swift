@@ -91,6 +91,10 @@ struct NEIRequestView: View {
     }
 
     private func sendRequest() async {
+        guard !NEIContentFilter.isObjectionable(message) else {
+            errorMessage = NEIContentFilter.rejectionMessage
+            return
+        }
         isLoading = true
         errorMessage = nil
         // Zamyka wyścig: sprawdź, czy już zaaplikowano, zanim utworzysz transakcję

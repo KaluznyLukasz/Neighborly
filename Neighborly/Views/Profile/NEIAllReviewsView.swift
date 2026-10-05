@@ -4,9 +4,15 @@
 //
 
 import SwiftUI
+import FirebaseAuth
 
 struct NEIAllReviewsView: View {
     let reviews: [Review]
+
+    @EnvironmentObject private var authService: NEIAuthService
+    @State private var reportTarget: NEIReportTarget?
+
+    private var uid: String { authService.currentUser?.uid ?? "" }
 
     var body: some View {
         ScrollView {
@@ -15,7 +21,7 @@ struct NEIAllReviewsView: View {
                     if index > 0 {
                         Divider()
                     }
-                    ReviewRow(review: review)
+                    ReviewRow(review: review, onReport: review.reviewerId == uid ? nil : { reportTarget = .review(review) })
                 }
             }
             .padding(16)
@@ -26,6 +32,7 @@ struct NEIAllReviewsView: View {
             .padding(16)
         }
         .background(Color(.systemGroupedBackground))
+        .neiReportFlow(target: $reportTarget, reporterId: uid)
         .navigationTitle("Reviews")
         .navigationBarTitleDisplayMode(.inline)
     }

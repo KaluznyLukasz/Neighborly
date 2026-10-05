@@ -5,6 +5,7 @@ struct NEIProfileView: View {
     @EnvironmentObject var authService: NEIAuthService
     @State private var vm = NEIProfileViewModel()
     @State private var destination: Destination?
+    @State private var reportTarget: NEIReportTarget?
 
     private var uid: String { authService.currentUser?.uid ?? "" }
 
@@ -29,6 +30,7 @@ struct NEIProfileView: View {
                 Text(vm.errorMessage ?? "")
             }
             .task { await vm.load(userId: uid) }
+            .neiReportFlow(target: $reportTarget, reporterId: uid)
             .navigationDestination(item: $destination) { destination in
                 switch destination {
                 case .allReviews:
@@ -203,7 +205,7 @@ struct NEIProfileView: View {
                     if index > 0 {
                         Divider()
                     }
-                    ReviewRow(review: review)
+                    ReviewRow(review: review) { reportTarget = .review(review) }
                 }
                 if vm.reviews.count > 3 {
                     Divider()
@@ -318,6 +320,8 @@ struct OfferRow: View {
 
 struct ReviewRow: View {
     let review: Review
+    // nil przy własnych recenzjach — nie ma czego zgłaszać
+    var onReport: (() -> Void)? = nil
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -343,5 +347,10 @@ struct ReviewRow: View {
             }
         }
         .padding(.vertical, 6)
+        .contextMenu {
+            if let onReport {
+                Button("Report Review", systemImage: "flag", role: .destructive, action: onReport)
+            }
+        }
     }
 }

@@ -78,13 +78,14 @@ final class NEIAuthService: ObservableObject {
         try await user.reauthenticate(with: EmailAuthProvider.credential(withEmail: email, password: password))
     }
 
-    /// Usuwa konto uzytkownika: dokument w Firestore, potem konto w Firebase Auth.
-    /// Wolac po `reauthenticate(password:)` — bez swiezego zalogowania `user.delete()`
-    /// sie nie powiedzie.
+    /// Usuwa konto użytkownika: najpierw wszystkie jego dane (`NEIAccountDeletionService`),
+    /// potem dokument profilu, na końcu konto w Firebase Auth. Wołać po `reauthenticate(password:)`
+    /// — bez świeżego zalogowania `user.delete()` się nie powiedzie.
     func deleteAccount() async throws {
         guard let user = currentUser else {
             throw NSError(domain: "NEIAuthService", code: 0, userInfo: [NSLocalizedDescriptionKey: "No signed-in user."])
         }
+        try await NEIAccountDeletionService().deleteAllData(userId: user.uid)
         try await db.collection("users").document(user.uid).delete()
         try await user.delete()
         currentUser = nil
@@ -130,7 +131,10 @@ final class NEIAuthService: ObservableObject {
             "displayName": displayName,
             "rating": 0.0,
             "reviewCount": 0,
-            "createdAt": Timestamp(date: Date())
+            "createdAt": Timestamp(date: Date()),
+            // Zgoda na regulamin i potwierdzenie wieku z ekranu rejestracji
+            "termsVersion": NEILegal.termsVersion,
+            "termsAcceptedAt": Timestamp(date: Date())
         ]
         try await db.collection("users").document(user.uid).setData(data)
     }

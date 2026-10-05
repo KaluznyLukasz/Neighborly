@@ -106,9 +106,13 @@ struct NEIReviewView: View {
     }
 
     private func submit() async {
+        let trimmedComment = comment.trimmingCharacters(in: .whitespaces)
+        guard !NEIContentFilter.isObjectionable(trimmedComment) else {
+            errorMessage = NEIContentFilter.rejectionMessage
+            return
+        }
         isLoading = true
         errorMessage = nil
-        let trimmedComment = comment.trimmingCharacters(in: .whitespaces)
         let finalComment = trimmedComment.isEmpty ? ReviewPresets.texts.randomElement() : trimmedComment
         let review = Review(
             transactionId: transaction.id ?? "",

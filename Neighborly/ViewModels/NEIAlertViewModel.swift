@@ -74,6 +74,10 @@ final class NEIAlertViewModel {
         at coordinate: CLLocationCoordinate2D
     ) async -> Bool {
         errorMessage = nil
+        guard !NEIContentFilter.isObjectionable(title, details) else {
+            errorMessage = NEIContentFilter.rejectionMessage
+            return false
+        }
         let now = Date()
         let alert = NeighborhoodAlert(
             kind: kind,
