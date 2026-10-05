@@ -56,6 +56,17 @@ struct NEISignUpView: View {
                         .padding(.horizontal, 16)
                 }
 
+                VStack(alignment: .leading, spacing: 8) {
+                    NEIFieldGroup {
+                        Toggle("I'm \(NEILegal.minimumAge) or older and agree to the Terms of Use.", isOn: $vm.acceptedTerms)
+                    }
+
+                    Text(legalLinks)
+                        .font(.footnote)
+                        .foregroundStyle(Color(.secondaryLabel))
+                        .padding(.horizontal, 16)
+                }
+
                 if let error = vm.errorMessage {
                     Label(error, systemImage: "exclamationmark.circle.fill")
                         .font(.footnote)
@@ -87,6 +98,12 @@ struct NEISignUpView: View {
         }
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
         .tint(.green)
+    }
+
+    // Linki osobno pod przełącznikiem — w etykiecie Toggle VoiceOver ich nie udostępnia
+    private var legalLinks: AttributedString {
+        let markdown = "Read the [Terms of Use](\(NEILegal.termsURL.absoluteString)) and [Privacy Policy](\(NEILegal.privacyPolicyURL.absoluteString))."
+        return (try? AttributedString(markdown: markdown)) ?? AttributedString(markdown)
     }
 
     private func signUp() {

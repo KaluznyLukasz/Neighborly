@@ -50,6 +50,10 @@ final class NEIProfileViewModel {
     /// Zapisuje imię i bio. E-mail zmienia się osobno przez `NEIAuthService.changeEmail`,
     /// bo żyje tylko w Firebase Auth (dokument profilu czyta każdy zalogowany).
     func updateProfile(userId: String, displayName: String, bio: String) async {
+        guard !NEIContentFilter.isObjectionable(displayName, bio) else {
+            errorMessage = NEIContentFilter.rejectionMessage
+            return
+        }
         isSaving = true
         errorMessage = nil
         do {

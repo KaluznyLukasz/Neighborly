@@ -20,3 +20,6 @@ Package.resolved
 
 # Screenshots from `make screenshot`
 /build/screenshot.png
+
+# Firebase Hosting deploy cache
+.firebase/

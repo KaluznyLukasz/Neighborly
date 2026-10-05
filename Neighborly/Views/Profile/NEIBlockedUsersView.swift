@@ -54,7 +54,7 @@ struct NEIBlockedUsersView: View {
                 userPendingUnblock = nil
             }
         } message: {
-            Text("You'll be able to see their offers again.")
+            Text("You'll see their posts and alerts again, and they can message you.")
         }
         .task { await vm.loadBlockedUsers(currentUserId: currentUserId) }
     }
@@ -84,7 +84,7 @@ struct NEIBlockedUsersView: View {
             VStack(spacing: 4) {
                 Text("No blocked users")
                     .font(.headline)
-                Text("People you block won't be able to show you their offers.")
+                Text("You won't see posts or alerts from people you block, and they can't message you. To block someone, go to their profile.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)

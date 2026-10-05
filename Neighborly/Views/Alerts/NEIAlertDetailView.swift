@@ -15,6 +15,7 @@ struct NEIAlertDetailView: View {
     @State private var threads: [AlertThread] = []
     @State private var errorMessage: String?
     @State private var showChat = false
+    @State private var reportTarget: NEIReportTarget?
 
     private let alertService = NEIAlertService()
     private var uid: String { authService.currentUser?.uid ?? "" }
@@ -85,6 +86,20 @@ struct NEIAlertDetailView: View {
 
             if isAuthor {
                 repliesSection
+            } else {
+                Section {
+                    Button("Report Alert", systemImage: "flag", role: .destructive) {
+                        reportTarget = NEIReportTarget(
+                            type: .alert,
+                            targetId: alertId,
+                            ownerId: alert.authorId,
+                            ownerName: alert.authorName,
+                            excerpt: "\(alert.title)\n\(alert.details)"
+                        )
+                    }
+                    // Ikona w Form zostaje niebieska (docs/learnings/form-destructive-button-icon-stays-blue.md)
+                    .foregroundStyle(.red)
+                }
             }
         }
         .listStyle(.insetGrouped)
@@ -101,6 +116,7 @@ struct NEIAlertDetailView: View {
         .navigationDestination(isPresented: $showChat) {
             NEIAlertChatView(route: .toAuthor(of: alert, userId: uid, userName: userName))
         }
+        .neiReportFlow(target: $reportTarget, reporterId: uid)
         .task { if isAuthor { await loadThreads() } }
         .refreshable { if isAuthor { await loadThreads() } }
         .alert("Error", isPresented: Binding(

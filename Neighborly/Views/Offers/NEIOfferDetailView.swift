@@ -22,6 +22,7 @@ struct NEIOfferDetailView: View {
     @State private var showOwnerProfile = false
     @State private var ownerUser: NEIUser?
     @State private var favoriteVM = NEIFavoriteViewModel()
+    @State private var reportTarget: NEIReportTarget?
     @Environment(\.dismiss) private var dismiss
 
     var isOwner: Bool { offer.ownerId == currentUserId }
@@ -47,6 +48,9 @@ struct NEIOfferDetailView: View {
                     // Własny post nie potrzebuje karty "Posted by" z własnym profilem
                     if !isOwner {
                         ownerSection
+                            .padding(.horizontal, 20)
+
+                        reportButton
                             .padding(.horizontal, 20)
                     }
                 }
@@ -104,6 +108,7 @@ struct NEIOfferDetailView: View {
                 NEIUserProfileView(userId: offer.ownerId)
             }
             .toolbar(.hidden, for: .navigationBar)
+            .neiReportFlow(target: $reportTarget, reporterId: currentUserId)
             .confirmationDialog("Delete this request?", isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
                 Button("Delete Request", role: .destructive) {
                     onDelete?()
@@ -249,6 +254,28 @@ struct NEIOfferDetailView: View {
             .buttonStyle(.plain)
             .cardStyle()
         }
+    }
+
+    // Jak "Report a Problem" w App Store — dyskretny link pod treścią
+    private var reportButton: some View {
+        Button {
+            reportTarget = NEIReportTarget(
+                type: .offer,
+                targetId: offer.id ?? "",
+                ownerId: offer.ownerId,
+                ownerName: ownerUser?.displayName ?? "The owner",
+                excerpt: "\(offer.title)\n\(offer.description)"
+            )
+        } label: {
+            Label("Report Offer", systemImage: "flag")
+                .font(.subheadline)
+                .foregroundStyle(Color.neiRed)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(offer.id == nil)
     }
 
     private var favoriteButton: some View {

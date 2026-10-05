@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		FAD2A0C92FB24B610059AFA0 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = FAD2A0C82FB24B610059AFA0 /* FirebaseAnalytics */; };
 		FAD2A0CB2FB24B610059AFA0 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = FAD2A0CA2FB24B610059AFA0 /* FirebaseAuth */; };
 		FAD2A0CD2FB24B610059AFA0 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = FAD2A0CC2FB24B610059AFA0 /* FirebaseFirestore */; };
 		FAFC78622FB34EB7009D8114 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = FAFC78612FB34EB7009D8114 /* FirebaseStorage */; };
@@ -80,7 +79,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				FAD2A0C92FB24B610059AFA0 /* FirebaseAnalytics in Frameworks */,
 				FAFC78622FB34EB7009D8114 /* FirebaseStorage in Frameworks */,
 				FAD2A0CB2FB24B610059AFA0 /* FirebaseAuth in Frameworks */,
 				FAD2A0CD2FB24B610059AFA0 /* FirebaseFirestore in Frameworks */,
@@ -153,7 +151,6 @@
 			);
 			name = Neighborly;
 			packageProductDependencies = (
-				FAD2A0C82FB24B610059AFA0 /* FirebaseAnalytics */,
 				FAD2A0CA2FB24B610059AFA0 /* FirebaseAuth */,
 				FAD2A0CC2FB24B610059AFA0 /* FirebaseFirestore */,
 				FAFC78612FB34EB7009D8114 /* FirebaseStorage */,
@@ -406,8 +403,8 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Neighborly-Info.plist";
-				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Neighborly uses your location to show offers and alerts from neighbors nearby.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Neighborly uses your location to show offers and alerts from neighbors nearby.";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Neighborly uses your location to show posts and alerts near you and to place the alerts you post on the map.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Neighborly uses your location to show posts and alerts near you and to place the alerts you post on the map.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -442,8 +439,8 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Neighborly-Info.plist";
-				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Neighborly uses your location to show offers and alerts from neighbors nearby.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Neighborly uses your location to show offers and alerts from neighbors nearby.";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Neighborly uses your location to show posts and alerts near you and to place the alerts you post on the map.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Neighborly uses your location to show posts and alerts near you and to place the alerts you post on the map.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -568,11 +565,6 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		FAD2A0C82FB24B610059AFA0 /* FirebaseAnalytics */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = FAD2A0C72FB24B610059AFA0 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseAnalytics;
-		};
 		FAD2A0CA2FB24B610059AFA0 /* FirebaseAuth */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = FAD2A0C72FB24B610059AFA0 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;

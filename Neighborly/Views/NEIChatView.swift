@@ -30,6 +30,7 @@ struct NEIChatView: View {
 
     @State private var vm = NEIMessageViewModel()
     @State private var inputText = ""
+    @State private var reportTarget: NEIReportTarget?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -41,6 +42,7 @@ struct NEIChatView: View {
                                 message: message,
                                 isMe: message.senderId == currentUserId
                             )
+                            .contextMenu { messageMenu(message) }
                             .id(message.id)
                         }
                     }
@@ -81,7 +83,8 @@ struct NEIChatView: View {
                             senderName: currentUserName,
                             text: text
                         )
-                        if sent { await onSent?(text) }
+                        // Odrzucona (filtr, sieć) wraca do pola, żeby jej nie przepisywać
+                        if sent { await onSent?(text) } else if inputText.isEmpty { inputText = text }
                     }
                 } label: {
                     Image(systemName: "arrow.up.circle.fill")
@@ -97,11 +100,32 @@ struct NEIChatView: View {
         .background(Color(.systemGroupedBackground))
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
+        .neiReportFlow(target: $reportTarget, reporterId: currentUserId)
         .task {
             vm.startListening(path: conversationPath)
         }
         .onDisappear {
             vm.stopListening()
+        }
+    }
+}
+
+extension NEIChatView {
+    @ViewBuilder
+    private func messageMenu(_ message: Message) -> some View {
+        Button("Copy", systemImage: "doc.on.doc") {
+            UIPasteboard.general.string = message.text
+        }
+        if message.senderId != currentUserId, let id = message.id {
+            Button("Report Message", systemImage: "flag", role: .destructive) {
+                reportTarget = NEIReportTarget(
+                    type: .message,
+                    targetId: "\(conversationPath)/\(id)",
+                    ownerId: message.senderId,
+                    ownerName: message.senderName,
+                    excerpt: message.text
+                )
+            }
         }
     }
 }

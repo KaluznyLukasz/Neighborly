@@ -90,10 +90,10 @@ struct NEISettingsView: View {
         .alert("Delete Account?", isPresented: $showDeleteAlert) {
             SecureField("Password", text: $deletePassword)
                 .textContentType(.password)
-            Button("Delete", role: .destructive) { Task { await deleteAccount() } }
+            Button("Delete Account", role: .destructive) { Task { await deleteAccount() } }
             Button("Cancel", role: .cancel) { deletePassword = "" }
         } message: {
-            Text("This permanently deletes your account and profile. Enter your password to confirm.")
+            Text("Your profile, posts, alerts, messages and reviews will be permanently deleted, and open exchanges with neighbors will be cancelled. Enter your password to confirm.")
         }
         .alert(notice?.title ?? "", isPresented: .init(
             get: { notice != nil },
@@ -286,14 +286,34 @@ struct NEISettingsView: View {
             }
             .disabled(isDeleting)
         } footer: {
-            Text("Permanently deletes your account and profile. This can't be undone.")
+            Text("Deletes your profile, posts, alerts, messages and reviews. This can't be undone.")
         }
     }
 
     private var aboutSection: some View {
-        Section {
+        Section("About") {
+            linkRow(title: "Contact Support", systemImage: "envelope.fill", tint: Color.neiBlue, url: NEILegal.contactURL)
+            linkRow(title: "Privacy Policy", systemImage: "hand.raised.square.fill", tint: Color(.systemGray), url: NEILegal.privacyPolicyURL)
+            linkRow(title: "Terms of Use", systemImage: "doc.text.fill", tint: Color(.systemGray), url: NEILegal.termsURL)
             LabeledContent("Version", value: Bundle.main.appVersionString)
         }
+    }
+
+    private func linkRow(title: String, systemImage: String, tint: Color, url: URL) -> some View {
+        Button {
+            openURL(url)
+        } label: {
+            HStack {
+                NEISettingsLabel(title: title, systemImage: systemImage, tint: tint)
+                Spacer()
+                Image(systemName: "arrow.up.forward")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Color(.tertiaryLabel))
+                    .accessibilityHidden(true)
+            }
+            .contentShape(Rectangle())
+        }
+        .accessibilityAddTraits(.isLink)
     }
 
     // MARK: - Wiersz otwierający ustawienia systemowe

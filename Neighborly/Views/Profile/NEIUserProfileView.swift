@@ -9,6 +9,7 @@ struct NEIUserProfileView: View {
     @State private var blockVM = NEIBlockViewModel()
     @State private var showBlockAlert = false
     @State private var showUnblockAlert = false
+    @State private var reportTarget: NEIReportTarget?
 
     var body: some View {
         Group {
@@ -35,7 +36,7 @@ struct NEIUserProfileView: View {
                 }
             }
         } message: {
-            Text("You won't see their offers anymore.")
+            Text("You won't see their posts or alerts, and they can't message you or respond to your posts.")
         }
         .alert("Unblock \(vm.user?.displayName ?? "this user")?", isPresented: $showUnblockAlert) {
             Button("Cancel", role: .cancel) {}
@@ -49,7 +50,10 @@ struct NEIUserProfileView: View {
                 }
             }
         } message: {
-            Text("You'll be able to see their offers again.")
+            Text("You'll see their posts and alerts again, and they can message you.")
+        }
+        .neiReportFlow(target: $reportTarget, reporterId: authService.currentUser?.uid ?? "") {
+            blockVM.blockedUserIds.insert(userId)
         }
         .alert("Error", isPresented: Binding(
             get: { vm.errorMessage != nil },
@@ -202,7 +206,7 @@ struct NEIUserProfileView: View {
                     if index > 0 {
                         Divider()
                     }
-                    ReviewRow(review: review)
+                    ReviewRow(review: review, onReport: reportAction(for: review))
                 }
                 if vm.reviews.count > 3 {
                     Divider()
@@ -227,6 +231,11 @@ struct NEIUserProfileView: View {
         }
     }
 
+    private func reportAction(for review: Review) -> (() -> Void)? {
+        guard review.reviewerId != authService.currentUser?.uid else { return nil }
+        return { reportTarget = .review(review) }
+    }
+
     private var blockSection: some View {
         NEISectionCard(title: "Trust & Safety") {
             Button {
@@ -248,6 +257,38 @@ struct NEIUserProfileView: View {
                         .font(.subheadline)
                         .fontWeight(.medium)
                         .foregroundStyle(blockVM.isBlocked(userId) ? .primary : Color.neiRed)
+
+                    Spacer()
+                }
+                .padding(.vertical, 2)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            Divider()
+
+            Button {
+                reportTarget = NEIReportTarget(
+                    type: .user,
+                    targetId: userId,
+                    ownerId: userId,
+                    ownerName: vm.user?.displayName ?? "This person",
+                    excerpt: [vm.user?.displayName, vm.user?.bio].compactMap { $0 }.joined(separator: " — ")
+                )
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "flag.fill")
+                        .font(.subheadline)
+                        .foregroundStyle(Color.neiRed)
+                        .frame(width: 36, height: 36)
+                        .background(Color.neiRed.opacity(0.15))
+                        .clipShape(RoundedRectangle(cornerRadius: 9))
+                        .accessibilityHidden(true)
+
+                    Text("Report User")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundStyle(Color.neiRed)
 
                     Spacer()
                 }

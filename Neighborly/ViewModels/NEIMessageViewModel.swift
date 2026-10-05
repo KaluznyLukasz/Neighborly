@@ -33,8 +33,12 @@ final class NEIMessageViewModel {
     func send(path: String, senderId: String, senderName: String, text: String) async -> Bool {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return false }
-        isSending = true
         errorMessage = nil
+        guard !NEIContentFilter.isObjectionable(trimmed) else {
+            errorMessage = NEIContentFilter.rejectionMessage
+            return false
+        }
+        isSending = true
         let msg = Message(senderId: senderId, senderName: senderName, text: trimmed, createdAt: Date())
         defer { isSending = false }
         do {

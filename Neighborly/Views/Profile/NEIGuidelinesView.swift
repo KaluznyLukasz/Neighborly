@@ -26,8 +26,32 @@ struct NEIGuidelinesView: View {
                 Label("Agree on any exchange in person.", systemImage: "hand.thumbsup.fill")
             }
 
-            Section("Reporting a Problem") {
-                Label("You can block a concerning user from their profile (Block User), which hides their offers from you.", systemImage: "hand.raised.fill")
+            Section {
+                Label("Harassment, hate speech, threats or bullying.", systemImage: "exclamationmark.bubble.fill")
+                Label("Sexual, violent or otherwise offensive content.", systemImage: "eye.slash.fill")
+                Label("Scams, spam, or anything illegal, including weapons, drugs and stolen goods.", systemImage: "nosign")
+                Label("Pretending to be someone else, or sharing other people's personal details.", systemImage: "person.crop.circle.badge.xmark")
+            } header: {
+                Text("Not Allowed")
+            } footer: {
+                Text("Neighborly has zero tolerance for this content. We remove it and may close the accounts that post it.")
+            }
+
+            Section {
+                Label("Report an offer, alert or person from its page. Touch and hold a message or review to report it.", systemImage: "flag.fill")
+                Label("Block someone from their profile. You won't see their posts or alerts, and they can't message you or respond to your posts.", systemImage: "hand.raised.fill")
+                Link(destination: NEILegal.contactURL) {
+                    Label("Email \(NEILegal.contactEmail)", systemImage: "envelope.fill")
+                }
+            } header: {
+                Text("Reporting a Problem")
+            } footer: {
+                Text("Neighborly reviews every report within 24 hours. If someone is in danger, call 112.")
+            }
+
+            Section {
+                Link("Terms of Use", destination: NEILegal.termsURL)
+                Link("Privacy Policy", destination: NEILegal.privacyPolicyURL)
             }
         }
         .navigationTitle("Community Guidelines")
