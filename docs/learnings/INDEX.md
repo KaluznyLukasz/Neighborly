@@ -15,7 +15,7 @@ learning under `docs/learnings/`. Add with `/nei-learn`; promote recurring rules
 - [push-inside-sheet-pin-primary-action](push-inside-sheet-pin-primary-action.md) — view pushed inside a .medium sheet keeps the detent; pin its main button with safeAreaInset, push instead of sheet-on-sheet
 - [sim-no-tap-use-launch-arg-hook](sim-no-tap-use-launch-arg-hook.md) — simctl can't tap; screenshot a deep screen via a temporary launch-arg branch in ContentView
 - [button-in-list-tints-primary-text-blue](button-in-list-tints-primary-text-blue.md) — any Button label renders .primary/.secondary text in the tint color (List rows included); use Color(.label)/Color(.secondaryLabel)
-- [list-row-restyles-label-in-button](list-row-restyles-label-in-button.md) — Label in a Button inside a List row loses its title and stretches; use HStack { Image; Text }
+- [list-row-restyles-label-in-button](list-row-restyles-label-in-button.md) — List rows restyle Label (lost title in a Button, wide gap after the icon); use HStack { Image; Text }
 - [list-row-multiple-navigationlinks-fire-all](list-row-multiple-navigationlinks-fire-all.md) — several NavigationLinks in one List row all fire on one tap; use Buttons + .navigationDestination(item:)
 - [swipeactions-need-a-list](swipeactions-need-a-list.md) — .swipeActions does nothing in ScrollView/VStack; use a plain List with clear, separator-less rows
 - [form-destructive-button-icon-stays-blue](form-destructive-button-icon-stays-blue.md) — destructive Button with systemImage in a Form: title red, icon blue; add .foregroundStyle(.red)

@@ -209,9 +209,14 @@ private struct TransactionRow: View {
                         .lineLimit(1)
                 }
                 if transaction.status == .accepted, let dueDate = transaction.dueDate {
-                    Label(dueText(dueDate), systemImage: transaction.isOverdue ? "exclamationmark.triangle.fill" : "calendar")
-                        .font(.caption)
-                        .foregroundStyle(dueColor(dueDate))
+                    // HStack zamiast Label: w List Label rezerwuje szeroką kolumnę na ikonę
+                    HStack(alignment: .firstTextBaseline, spacing: 4) {
+                        Image(systemName: transaction.isOverdue ? "exclamationmark.triangle.fill" : "calendar")
+                            .accessibilityHidden(true)
+                        Text(dueText(dueDate))
+                    }
+                    .font(.caption)
+                    .foregroundStyle(dueColor(dueDate))
                 } else {
                     Text(transaction.createdAt.formatted(.relative(presentation: .named)))
                         .font(.caption)
