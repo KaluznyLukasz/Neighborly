@@ -80,16 +80,17 @@ struct NEIOfferDetailView: View {
                 guard !isOwner, let offerId = offer.id else { return }
                 await favoriteVM.checkFavorited(offerId: offerId, userId: currentUserId)
             }
+            // Task rusza też po powrocie z NEIRequestView. Zapis aplikacji nie czeka na serwer,
+            // więc odczyt tuż po nim dostaje odmowę z reguł (dokumentu jeszcze tam nie ma)
+            // i cofał przycisk do "Offer to Help". Raz ustawionego "Applied" nie cofamy.
             .task(id: offer.id) {
-                alreadyApplied = false
-                checkingRequest = true
-                guard !isOwner, let offerId = offer.id else {
+                guard !alreadyApplied, !isOwner, let offerId = offer.id else {
                     checkingRequest = false
                     return
                 }
                 let existing = try? await NEITransactionService()
                     .existingTransaction(offerId: offerId, requesterId: currentUserId)
-                alreadyApplied = existing?.id != nil
+                if existing?.id != nil { alreadyApplied = true }
                 checkingRequest = false
             }
             // Push zamiast sheeta — arkusz na arkuszu wygląda źle
