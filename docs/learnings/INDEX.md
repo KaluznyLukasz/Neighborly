@@ -5,6 +5,7 @@ learning under `docs/learnings/`. Add with `/nei-learn`; promote recurring rules
 `CLAUDE.md` with `/nei-distill`.
 
 <!-- newest first -->
+- [read-after-unawaited-write-denied-by-rules](read-after-unawaited-write-denied-by-rules.md) — getDocument right after an un-awaited setData can be rule-denied, try? makes it "missing"; root .task re-runs on pop; never downgrade known state from such a read
 - [collection-group-query-needs-field-override](collection-group-query-needs-field-override.md) — collectionGroup query needs a COLLECTION_GROUP fieldOverride (re-list collection scope too) + a {path=**} rule; deploy --force deletes console-only indexes
 - [widget-views-render-check-without-xcode](widget-views-render-check-without-xcode.md) — widgetFamily is get-only and simctl can't add widgets; render temp copies of the widget views in the app behind a launch arg
 - [firestore-empty-document-path-crashes](firestore-empty-document-path-crashes.md) — document("") throws an uncatchable Obj-C exception (SIGABRT); guard `uid ?? ""` before building a path
